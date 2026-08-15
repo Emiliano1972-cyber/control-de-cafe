@@ -13,21 +13,25 @@
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#211b16;background:#f6f2ed}
 *{box-sizing:border-box}body{margin:0;padding:20px;max-width:760px;margin:auto}
 h1{font-size:25px;margin:0 0 4px}.sub{color:#756a61;font-size:14px;margin-bottom:18px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{background:#fff;border:1px solid #ded6ce;border-radius:16px;padding:15px;margin:12px 0}
-.metric{font-size:30px;font-weight:700}.muted{color:#756a61;font-size:13px}
+nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+nav button{border:1px solid #cfc5bb;background:#fff;border-radius:12px;padding:11px;min-height:44px;font:inherit}
+nav button.active{background:#e8dfd6;border-color:#bca894}
+.card{background:#fff;border:1px solid #ded6ce;border-radius:16px;padding:15px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.metric{font-size:30px;font-weight:700}.big{font-size:22px;font-weight:700}
+.muted{color:#756a61;font-size:13px}.small{font-size:12px;color:#756a61}
+.section-title{font-weight:650;margin-bottom:12px}
 button,input{font:inherit}button{border:1px solid #cfc5bb;background:#fff;border-radius:12px;padding:13px;min-height:48px}
 button.primary{background:#6b4f35;color:#fff;border-color:#6b4f35;font-weight:650}
 button.danger{color:#8a2f2f}.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
 label{display:block;font-size:13px;color:#756a61;margin-bottom:6px}
 input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;background:#fff}
-.big{font-size:22px;font-weight:700}.section-title{font-weight:650;margin-bottom:12px}
 .status{padding:12px;border-radius:12px;background:#eee8e2;margin-top:10px}
 .ok{background:#e8f3e9}.warn{background:#fff1d9}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 4px;border-bottom:1px solid #eee;text-align:right}td:first-child,th:first-child{text-align:left}
-.small{font-size:12px;color:#756a61}.hidden{display:none!important}
-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
-nav button.active{background:#e8dfd6;border-color:#bca894}
-ul{padding-left:20px}
+.hidden{display:none!important}
+.page-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.back{margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -40,201 +44,290 @@ ul{padding-left:20px}
 <button data-view="month">Mes</button>
 </nav>
 
-<section id="today">
-<div class="grid">
-<div class="card"><div class="muted">Hoy</div><div id="todayTotal" class="metric">0</div><div class="muted">cápsulas usadas</div></div>
-<div class="card"><div class="muted">Mes</div><div id="monthTotal" class="metric">0</div><div class="muted">cápsulas</div></div>
-</div>
+<!-- PÁGINA 1: INICIO DE LA JORNADA -->
+<section id="startPage">
+  <div class="card">
+    <div class="page-title">🌅 Comenzar el día</div>
+    <div class="muted" style="margin-bottom:14px">Ingresá las cantidades que tenés al comenzar la jornada.</div>
+    <div class="row">
+      <div><label>Vasos iniciales</label><input id="initialGlasses" type="number" min="0" inputmode="numeric" placeholder="Ej. 20"></div>
+      <div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" inputmode="numeric" placeholder="Ej. 50"></div>
+    </div>
+    <button id="start" class="primary" style="width:100%;margin-top:12px">☕ Comenzar jornada</button>
+  </div>
+</section>
 
-<div id="setup" class="card">
-<div class="section-title">🌅 Comenzar día</div><div class="small" style="margin-bottom:10px">Podés volver a esta sección durante una jornada abierta sin borrar los movimientos registrados.</div>
-<div class="row">
-<div><label>Vasos iniciales</label><input id="initialGlasses" type="number" min="0" placeholder="Ej. 20"></div>
-<div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" placeholder="Ej. 50"></div>
-</div>
-<button id="start" class="primary" style="width:100%;margin-top:12px">Comenzar jornada</button>
-</div>
+<!-- PÁGINA 2: JORNADA ACTIVA -->
+<section id="dayPage" class="hidden">
+  <div class="card">
+    <button id="backStart" class="back">← Volver al inicio del día</button>
+    <div class="page-title">📋 Jornada de hoy</div>
+    <div class="small">Volver al inicio no borra los movimientos registrados.</div>
+  </div>
 
-<div id="active" class="hidden">
-<div style="margin:0 0 10px"><button id="backStart" class="small">← Volver al inicio del día</button></div>
-<div class="card">
-<div class="section-title">🥤 Vasos térmicos</div>
-<div class="row">
-<button id="addGlass">+1 vaso</button><button id="add5Glass">+5 vasos</button>
-</div>
-<p class="small">Agregados hoy: <strong id="addedGlasses">0</strong></p>
-</div>
+  <div class="grid">
+    <div class="card"><div class="muted">Hoy</div><div id="todayTotal" class="metric">0</div><div class="muted">cápsulas usadas</div></div>
+    <div class="card"><div class="muted">Mes</div><div id="monthTotal" class="metric">0</div><div class="muted">cápsulas</div></div>
+  </div>
 
-<div class="card">
-<div class="section-title">🍵 Tazas lavadas</div>
-<div class="row">
-<button id="wash1">+1 taza</button><button id="wash5">+5 tazas</button><button id="washUndo">−1</button>
-</div>
-<p class="small">Lavadas hoy: <strong id="washed">0</strong></p>
-</div>
+  <div class="card">
+    <div class="section-title">🥤 Vasos térmicos</div>
+    <div class="row"><button id="addGlass">+1 vaso</button><button id="add5Glass">+5 vasos</button></div>
+    <p class="small">Agregados hoy: <strong id="addedGlasses">0</strong></p>
+  </div>
 
-<div class="card">
-<div class="section-title">📦 Cápsulas agregadas al dispenser</div>
-<div class="row">
-<button id="add10Caps">+10</button><button id="add25Caps">+25</button><button id="add50Caps">+50</button>
-</div>
-<p class="small">Agregadas hoy: <strong id="addedCapsules">0</strong></p>
-</div>
+  <div class="card">
+    <div class="section-title">🍵 Tazas lavadas</div>
+    <div class="row"><button id="wash1">+1 taza</button><button id="wash5">+5 tazas</button><button id="washUndo">−1</button></div>
+    <p class="small">Lavadas hoy: <strong id="washed">0</strong></p>
+  </div>
 
-<div class="card">
-<div class="section-title">🌙 Cierre del día</div>
-<div class="row">
-<div><label>Vasos que quedan</label><input id="remainingGlasses" type="number" min="0" inputmode="numeric" placeholder="Ej. 7"></div>
-<div><label>Cápsulas que quedan</label><input id="remainingCapsules" type="number" min="0" inputmode="numeric" placeholder="Ej. 51"></div>
-</div>
-<div class="status" id="liveResult">Completá los datos de cierre. Al cerrar, el número de “Hoy” pasará a mostrar las cápsulas usadas.</div>
-<button id="closeDay" class="primary" style="width:100%;margin-top:12px">🔒 Cerrar día</button>
-</div>
-</div>
+  <div class="card">
+    <div class="section-title">📦 Cápsulas agregadas al dispenser</div>
+    <div class="row"><button id="add10Caps">+10</button><button id="add25Caps">+25</button><button id="add50Caps">+50</button></div>
+    <p class="small">Agregadas hoy: <strong id="addedCapsules">0</strong></p>
+  </div>
 
-<div id="closed" class="hidden"></div>
+  <div class="card">
+    <div class="section-title">🌙 Cierre del día</div>
+    <div class="row">
+      <div><label>Vasos que quedan</label><input id="remainingGlasses" type="number" min="0" inputmode="numeric" placeholder="Ej. 15"></div>
+      <div><label>Cápsulas que quedan</label><input id="remainingCapsules" type="number" min="0" inputmode="numeric" placeholder="Ej. 10"></div>
+    </div>
+    <div class="status" id="liveResult">Ingresá los dos valores de cierre para comprobar las cuentas.</div>
+    <button id="closeDay" class="primary" style="width:100%;margin-top:12px">🔒 Cerrar el día</button>
+    <button id="editDay" class="hidden" style="width:100%;margin-top:8px">✏️ Editar jornada</button>
+  </div>
+
+  <div id="closedCard" class="hidden"></div>
 </section>
 
 <section id="week" class="hidden">
-<div class="card"><div class="section-title">📊 Semana laboral</div><div id="weekSummary"></div></div>
+  <div class="card"><div class="section-title">📊 Semana laboral</div><div id="weekSummary"></div></div>
 </section>
 
 <section id="month" class="hidden">
-<div class="card"><div class="section-title">📦 Cierre mensual</div><div id="monthSummary"></div></div>
-<div class="card"><div class="section-title">🗂️ Historial mensual</div><div id="archive"></div></div>
+  <div class="card"><div class="section-title">📦 Cierre mensual</div><div id="monthSummary"></div></div>
+  <div class="card"><div class="section-title">🗂️ Historial mensual</div><div id="archive"></div></div>
 </section>
 
 <div class="card">
-<div class="section-title">💾 Datos</div>
-<div class="row">
-<button id="export">Exportar respaldo</button>
-<button id="reset" class="danger">Borrar mes</button>
-</div>
-<div class="small" style="margin-top:8px">Los datos se guardan localmente en este dispositivo. Exportá un respaldo al cerrar cada mes.</div>
+  <div class="section-title">💾 Datos</div>
+  <div class="row"><button id="export">Exportar respaldo</button><button id="reset" class="danger">Borrar mes</button></div>
+  <div class="small" style="margin-top:8px">Los datos se guardan localmente en este dispositivo. Exportá un respaldo al cerrar cada mes.</div>
 </div>
 
 <script>
-const KEY="cafe_control_v1";
+const KEY="cafe_control_v2";
+let state=JSON.parse(localStorage.getItem(KEY)||'{"days":{},"archives":[]}');
+
+const $=id=>document.getElementById(id);
+const el={
+  startPage:$("startPage"),dayPage:$("dayPage"),start:$("start"),
+  initialGlasses:$("initialGlasses"),initialCapsules:$("initialCapsules"),
+  todayTotal:$("todayTotal"),monthTotal:$("monthTotal"),
+  addedGlasses:$("addedGlasses"),washed:$("washed"),addedCapsules:$("addedCapsules"),
+  remainingGlasses:$("remainingGlasses"),remainingCapsules:$("remainingCapsules"),
+  liveResult:$("liveResult"),closeDay:$("closeDay"),editDay:$("editDay"),
+  closedCard:$("closedCard"),addGlass:$("addGlass"),add5Glass:$("add5Glass"),
+  wash1:$("wash1"),wash5:$("wash5"),washUndo:$("washUndo"),
+  add10Caps:$("add10Caps"),add25Caps:$("add25Caps"),add50Caps:$("add50Caps"),
+  weekSummary:$("weekSummary"),monthSummary:$("monthSummary"),archive:$("archive"),
+  export:$("export"),reset:$("reset")
+};
+
 const todayKey=()=>new Date().toISOString().slice(0,10);
 const monthKey=()=>todayKey().slice(0,7);
-let state=JSON.parse(localStorage.getItem(KEY)||'{"days":{},"archives":[]}');
+const day=()=>state.days[todayKey()];
+const fmt=n=>Number(n||0).toLocaleString("es-AR");
 function save(){localStorage.setItem(KEY,JSON.stringify(state));}
-function day(){return state.days[todayKey()]}
-function fmt(n){return Number(n||0).toLocaleString("es-AR")}
-function startDay(){
- const d=todayKey();
- if(state.days[d]) return render();
- state.days[d]={started:true,closed:false,date:d,initialGlasses:+el.initialGlasses.value||0,addedGlasses:0,washed:0,initialCapsules:+el.initialCapsules.value||0,addedCapsules:0,remainingGlasses:+el.initialGlasses.value||0,remainingCapsules:+el.initialCapsules.value||0,total:0};
- save(); render();
-}
+function monthDays(){return Object.values(state.days).filter(d=>d.date.slice(0,7)===monthKey()).sort((a,b)=>a.date.localeCompare(b.date));}
+function monthTotal(){return monthDays().filter(d=>d.closed).reduce((s,d)=>s+d.total,0);}
+function weekDays(){return monthDays().filter(d=>d.closed).slice(-5);}
+
 function calc(d){
- const glass=Math.max(0,d.initialGlasses+d.addedGlasses-d.remainingGlasses);
- const dispenser=Math.max(0,d.initialCapsules+d.addedCapsules-d.remainingCapsules);
- return {glass,dispenser,container:glass+d.washed,diff:(glass+d.washed)-dispenser};
+  const glasses=Math.max(0,d.initialGlasses+d.addedGlasses-d.remainingGlasses);
+  const dispenser=Math.max(0,d.initialCapsules+d.addedCapsules-d.remainingCapsules);
+  const containers=glasses+d.washed;
+  return {glasses,dispenser,containers,diff:containers-dispenser};
 }
-function closeDay(){
- const d=day(); if(!d||d.closed)return;
- const rg=el.remainingGlasses.value;
- const rc=el.remainingCapsules.value;
- if(rg === "" || rc === ""){
-   alert("Completá vasos que quedan y cápsulas que quedan antes de cerrar el día.");
-   return;
- }
- d.remainingGlasses=Math.max(0,+rg||0);
- d.remainingCapsules=Math.max(0,+rc||0);
- const c=calc(d);
- d.containerTotal=c.container;
- d.dispenserTotal=c.dispenser;
- d.difference=c.diff;
- d.total=c.dispenser;
- d.closed=true;
- d.closedAt=new Date().toISOString();
- save();
- render();
-}
-function editDay(){
+
+function showStartPage(){
+  el.startPage.classList.remove("hidden");
+  el.dayPage.classList.add("hidden");
   const d=day();
-  if(!d || !d.closed) return;
-  d.closed=false;
-  d.total=0;
+  if(d){
+    el.initialGlasses.value=d.initialGlasses;
+    el.initialCapsules.value=d.initialCapsules;
+  }else{
+    el.initialGlasses.value="";
+    el.initialCapsules.value="";
+  }
+  el.start.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function showDayPage(){
+  el.startPage.classList.add("hidden");
+  el.dayPage.classList.remove("hidden");
+  el.dayPage.scrollIntoView({behavior:"smooth",block:"start"});
+  renderDay();
+}
+
+function startDay(){
+  const d=todayKey();
+  const ig=el.initialGlasses.value;
+  const ic=el.initialCapsules.value;
+  if(ig==="" || ic===""){
+    alert("Ingresá vasos iniciales y cápsulas iniciales antes de comenzar.");
+    return;
+  }
+  if(state.days[d]){
+    showDayPage();
+    return;
+  }
+  state.days[d]={
+    date:d,started:true,closed:false,
+    initialGlasses:Math.max(0,+ig||0),addedGlasses:0,washed:0,
+    initialCapsules:Math.max(0,+ic||0),addedCapsules:0,
+    remainingGlasses:Math.max(0,+ig||0),remainingCapsules:Math.max(0,+ic||0),
+    total:0
+  };
   save();
-  render();
-  el.remainingGlasses.value=d.remainingGlasses;
-  el.remainingCapsules.value=d.remainingCapsules;
-  updateLiveClosure();
+  showDayPage();
 }
-function add(field,n){const d=day();if(!d||d.closed)return;d[field]+=n;save();render()}
-function monthDays(){return Object.values(state.days).filter(d=>d.date.slice(0,7)===monthKey()).sort((a,b)=>a.date.localeCompare(b.date))}
-function monthTotal(){return monthDays().filter(d=>d.closed).reduce((s,d)=>s+d.total,0)}
-function weekDays(){const ds=monthDays(); return ds.filter(d=>d.closed).slice(-5)}
-function updateLiveClosure(){
+
+function add(field,n){
   const d=day();
-  if(!d || d.closed) return;
+  if(!d||d.closed)return;
+  d[field]=Math.max(0,(d[field]||0)+n);
+  save();
+  renderDay();
+}
+
+function updateLive(){
+  const d=day();
+  if(!d||d.closed)return;
   const rg=el.remainingGlasses.value;
   const rc=el.remainingCapsules.value;
-  d.remainingGlasses = rg === "" ? d.initialGlasses + d.addedGlasses : Math.max(0,+rg||0);
-  d.remainingCapsules = rc === "" ? d.initialCapsules + d.addedCapsules : Math.max(0,+rc||0);
-  const c=calc(d);
+  const rgv=rg===""?d.initialGlasses+d.addedGlasses:Math.max(0,+rg||0);
+  const rcv=rc===""?d.initialCapsules+d.addedCapsules:Math.max(0,+rc||0);
+  const temp={...d,remainingGlasses:rgv,remainingCapsules:rcv};
+  const c=calc(temp);
   el.liveResult.innerHTML=
-    `<div>🥤 Recipientes: <b>${fmt(c.container)}</b> cápsulas</div>
-     <div>📦 Dispenser: <b>${fmt(c.dispenser)}</b> cápsulas</div>
-     <div>🔎 Diferencia: <b>${fmt(c.diff)}</b></div>
+    `🥤 Recipientes: <b>${fmt(c.containers)}</b> · 📦 Dispenser: <b>${fmt(c.dispenser)}</b> · 🔎 Diferencia: <b>${fmt(c.diff)}</b>
      <div class="small" style="margin-top:6px">
-       Vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(d.remainingGlasses)} restantes.
-       Cápsulas: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(d.remainingCapsules)} restantes.
+     Vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(rgv)} restantes.
+     Cápsulas: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(rcv)} restantes.
      </div>`;
   el.liveResult.className="status "+(c.diff===0?"ok":"warn");
 }
-function render(){
- const d=day(), m=monthTotal();
-el.todayTotal.textContent=d?.closed ? fmt(d.total) : "0";
-el.monthTotal.textContent=fmt(m);
- el.setup.classList.toggle("hidden",!!d); el.active.classList.toggle("hidden",!d||d.closed); el.closed.classList.toggle("hidden",!d||!d.closed);
- if(d&&!d.closed){
+
+function closeDay(){
+  const d=day();
+  if(!d||d.closed)return;
+  if(el.remainingGlasses.value==="" || el.remainingCapsules.value===""){
+    alert("Completá vasos que quedan y cápsulas que quedan antes de cerrar el día.");
+    return;
+  }
+  d.remainingGlasses=Math.max(0,+el.remainingGlasses.value||0);
+  d.remainingCapsules=Math.max(0,+el.remainingCapsules.value||0);
+  const c=calc(d);
+  d.containerTotal=c.containers;
+  d.dispenserTotal=c.dispenser;
+  d.difference=c.diff;
+  d.total=c.dispenser;
+  d.closed=true;
+  d.closedAt=new Date().toISOString();
+  save();
+  renderDay();
+}
+
+function editDay(){
+  const d=day();
+  if(!d||!d.closed)return;
+  d.closed=false;
+  d.total=0;
+  save();
+  renderDay();
+  el.remainingGlasses.value=d.remainingGlasses;
+  el.remainingCapsules.value=d.remainingCapsules;
+  updateLive();
+}
+
+function renderDay(){
+  const d=day();
+  if(!d){showStartPage();return;}
+  el.initialGlasses.value=d.initialGlasses;
+  el.initialCapsules.value=d.initialCapsules;
   el.addedGlasses.textContent=d.addedGlasses;
   el.washed.textContent=d.washed;
   el.addedCapsules.textContent=d.addedCapsules;
-  const c=calc(d);
-  el.liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;
-  el.liveResult.className="status "+(c.diff===0?"ok":"warn");
+  el.todayTotal.textContent=d.closed?fmt(d.total):"0";
+  el.monthTotal.textContent=fmt(monthTotal());
+
+  if(d.closed){
+    el.closeDay.classList.add("hidden");
+    el.editDay.classList.remove("hidden");
+    el.remainingGlasses.value=d.remainingGlasses;
+    el.remainingCapsules.value=d.remainingCapsules;
+    const c=calc(d);
+    el.closedCard.classList.remove("hidden");
+    el.closedCard.innerHTML=
+      `<div class="card">
+        <div class="section-title">🔒 Día cerrado</div>
+        <div class="big">${fmt(d.total)} cápsulas usadas</div>
+        <div class="small">Recipientes: ${fmt(c.containers)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div>
+      </div>`;
+  }else{
+    el.closeDay.classList.remove("hidden");
+    el.editDay.classList.add("hidden");
+    el.closedCard.classList.add("hidden");
+    updateLive();
+  }
+  renderWeek();
+  renderMonth();
 }
- if(d?.closed){const c=calc(d);el.closed.innerHTML=`<div class="card">
-  <div class="section-title">🔒 Día cerrado</div>
-  <div class="big">${fmt(d.total)} cápsulas usadas</div>
-  <div class="small">Recipientes: ${fmt(c.container)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div>
-  <button id="editDay" style="width:100%;margin-top:12px">✏️ Editar jornada</button>
-</div>`}
- renderWeek();renderMonth();
-}
+
 function renderWeek(){
- const ds=weekDays(); let total=ds.reduce((s,d)=>s+d.total,0);
- el.weekSummary.innerHTML=ds.length?`<div class="big">${fmt(total)} cápsulas</div><table><tr><th>Día</th><th>Recip.</th><th>Disp.</th><th>Total</th></tr>${ds.map(d=>{const c=calc(d);return `<tr><td>${d.date.slice(8,10)}/${d.date.slice(5,7)}</td><td>${c.container}</td><td>${c.dispenser}</td><td>${d.total}</td></tr>`}).join("")}</table>`:"Todavía no hay días cerrados.";
+  const ds=weekDays();
+  const total=ds.reduce((s,d)=>s+d.total,0);
+  el.weekSummary.innerHTML=ds.length?
+    `<div class="big">${fmt(total)} cápsulas</div>
+     <table><tr><th>Día</th><th>Recip.</th><th>Disp.</th><th>Total</th></tr>
+     ${ds.map(d=>{const c=calc(d);return `<tr><td>${d.date.slice(8,10)}/${d.date.slice(5,7)}</td><td>${c.containers}</td><td>${c.dispenser}</td><td>${d.total}</td></tr>`}).join("")}</table>`
+    :"Todavía no hay días cerrados.";
 }
+
 function renderMonth(){
- const total=monthTotal(), boxes=Math.ceil(total/50), full=Math.floor(total/50), rem=total%50;
- el.monthSummary.innerHTML=`<div class="grid"><div><div class="muted">Cápsulas</div><div class="big">${fmt(total)}</div></div><div><div class="muted">Cajas equivalentes</div><div class="big">${full}${rem?" + "+rem:""}</div></div></div><p><b>Pedido recomendado: ${boxes} cajas</b></p><p class="small">${rem?`Quedan ${rem} cápsulas por completar la última caja.`:"Consumo exacto de cajas completas."}</p>`;
- el.archive.innerHTML=state.archives.length?state.archives.map(a=>`<p><b>${a.month}</b>: ${a.total} cápsulas · pedido ${a.order} cajas</p>`).join(""):"Sin meses archivados.";
+  const total=monthTotal(), boxes=Math.ceil(total/50), full=Math.floor(total/50), rem=total%50;
+  el.monthSummary.innerHTML=
+    `<div class="grid">
+      <div><div class="muted">Cápsulas</div><div class="big">${fmt(total)}</div></div>
+      <div><div class="muted">Cajas equivalentes</div><div class="big">${full}${rem?" + "+rem:""}</div></div>
+     </div>
+     <p><b>Pedido recomendado: ${boxes} cajas</b></p>
+     <p class="small">${rem?`Quedan ${rem} cápsulas para completar la última caja.`:"Consumo exacto de cajas completas."}</p>`;
+  el.archive.innerHTML=state.archives.length?
+    state.archives.map(a=>`<p><b>${a.month}</b>: ${a.total} cápsulas · pedido ${a.order} cajas</p>`).join("")
+    :"Sin meses archivados.";
 }
-const $ = id => document.getElementById(id);
-const el = {
-  start: $("start"), initialGlasses: $("initialGlasses"), initialCapsules: $("initialCapsules"),
-  setup: $("setup"), active: $("active"), closed: $("closed"),
-  todayTotal: $("todayTotal"), monthTotal: $("monthTotal"),
-  addedGlasses: $("addedGlasses"), washed: $("washed"), addedCapsules: $("addedCapsules"),
-  remainingGlasses: $("remainingGlasses"), remainingCapsules: $("remainingCapsules"),
-  liveResult: $("liveResult"), weekSummary: $("weekSummary"), monthSummary: $("monthSummary"),
-  archive: $("archive"), addGlass: $("addGlass"), add5Glass: $("add5Glass"),
-  wash1: $("wash1"), wash5: $("wash5"), washUndo: $("washUndo"),
-  add10Caps: $("add10Caps"), add25Caps: $("add25Caps"), add50Caps: $("add50Caps"),
-  closeDay: $("closeDay"), export: $("export"), reset: $("reset")
-};
 
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
   b.classList.add("active");
-  ["today","week","month"].forEach(v=>document.getElementById(v).classList.toggle("hidden",v!==b.dataset.view));
+  const view=b.dataset.view;
+  el.startPage.classList.add("hidden");
+  el.dayPage.classList.add("hidden");
+  document.getElementById("week").classList.toggle("hidden",view!=="week");
+  document.getElementById("month").classList.toggle("hidden",view!=="month");
+  if(view==="today"){
+    const d=day();
+    if(d) showDayPage(); else showStartPage();
+  }
 }));
+
 el.start.addEventListener("click",startDay);
+el.backStart.addEventListener("click",showStartPage);
 el.addGlass.addEventListener("click",()=>add("addedGlasses",1));
 el.add5Glass.addEventListener("click",()=>add("addedGlasses",5));
 el.wash1.addEventListener("click",()=>add("washed",1));
@@ -243,36 +336,35 @@ el.washUndo.addEventListener("click",()=>add("washed",-1));
 el.add10Caps.addEventListener("click",()=>add("addedCapsules",10));
 el.add25Caps.addEventListener("click",()=>add("addedCapsules",25));
 el.add50Caps.addEventListener("click",()=>add("addedCapsules",50));
-el.remainingGlasses.addEventListener("input",()=>updateLiveClosure());
-el.remainingCapsules.addEventListener("input",()=>updateLiveClosure());
+el.remainingGlasses.addEventListener("input",updateLive);
+el.remainingCapsules.addEventListener("input",updateLive);
 el.closeDay.addEventListener("click",closeDay);
-document.addEventListener("click", e=>{
-  if(e.target && e.target.id==="backStart"){
-    const setup = document.getElementById("setup");
-    if(setup){
-      setup.classList.remove("hidden");
-      setup.scrollIntoView({behavior:"smooth", block:"start"});
-      setTimeout(()=>{
-        const first = setup.querySelector("input");
-        if(first) first.focus({preventScroll:true});
-      }, 350);
-    }
-  }
-});
-document.addEventListener("click", e=>{
-  if(e.target && e.target.id==="editDay") editDay();
-});
+el.editDay.addEventListener("click",editDay);
 
 el.export.addEventListener("click",()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download=`cafe-control-${monthKey()}.json`; a.click(); URL.revokeObjectURL(a.href);
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`cafe-control-${monthKey()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 });
+
 el.reset.addEventListener("click",()=>{
   if(confirm("¿Borrar todos los datos del mes? Exportá un respaldo antes.")){
-    state={days:{},archives:state.archives}; save(); render();
+    state={days:{},archives:state.archives};
+    save();
+    render();
   }
 });
+
+function render(){
+  renderWeek();
+  renderMonth();
+  const d=day();
+  if(d) showDayPage(); else showStartPage();
+}
 render();
 </script>
-</body></html>
+</body>
+</html>

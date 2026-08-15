@@ -56,6 +56,7 @@ ul{padding-left:20px}
 </div>
 
 <div id="active" class="hidden">
+<div style="margin:0 0 10px"><button id="backToday" class="small">← Volver al resumen de hoy</button></div>
 <div class="card">
 <div class="section-title">🥤 Vasos térmicos</div>
 <div class="row">
@@ -133,9 +134,34 @@ function calc(d){
 }
 function closeDay(){
  const d=day(); if(!d||d.closed)return;
- d.remainingGlasses=Math.max(0,+el.remainingGlasses.value||0);
- d.remainingCapsules=Math.max(0,+el.remainingCapsules.value||0);
- const c=calc(d); d.total=c.dispenser; d.closed=true; d.closedAt=new Date().toISOString(); save(); render();
+ const rg=el.remainingGlasses.value;
+ const rc=el.remainingCapsules.value;
+ if(rg === "" || rc === ""){
+   alert("Completá vasos que quedan y cápsulas que quedan antes de cerrar el día.");
+   return;
+ }
+ d.remainingGlasses=Math.max(0,+rg||0);
+ d.remainingCapsules=Math.max(0,+rc||0);
+ const c=calc(d);
+ d.containerTotal=c.container;
+ d.dispenserTotal=c.dispenser;
+ d.difference=c.diff;
+ d.total=c.dispenser;
+ d.closed=true;
+ d.closedAt=new Date().toISOString();
+ save();
+ render();
+}
+function editDay(){
+  const d=day();
+  if(!d || !d.closed) return;
+  d.closed=false;
+  d.total=0;
+  save();
+  render();
+  el.remainingGlasses.value=d.remainingGlasses;
+  el.remainingCapsules.value=d.remainingCapsules;
+  updateLiveClosure();
 }
 function add(field,n){const d=day();if(!d||d.closed)return;d[field]+=n;save();render()}
 function monthDays(){return Object.values(state.days).filter(d=>d.date.slice(0,7)===monthKey()).sort((a,b)=>a.date.localeCompare(b.date))}
@@ -149,7 +175,14 @@ function updateLiveClosure(){
   d.remainingGlasses = rg === "" ? d.initialGlasses + d.addedGlasses : Math.max(0,+rg||0);
   d.remainingCapsules = rc === "" ? d.initialCapsules + d.addedCapsules : Math.max(0,+rc||0);
   const c=calc(d);
-  el.liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;
+  el.liveResult.innerHTML=
+    `<div>🥤 Recipientes: <b>${fmt(c.container)}</b> cápsulas</div>
+     <div>📦 Dispenser: <b>${fmt(c.dispenser)}</b> cápsulas</div>
+     <div>🔎 Diferencia: <b>${fmt(c.diff)}</b></div>
+     <div class="small" style="margin-top:6px">
+       Vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(d.remainingGlasses)} restantes.
+       Cápsulas: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(d.remainingCapsules)} restantes.
+     </div>`;
   el.liveResult.className="status "+(c.diff===0?"ok":"warn");
 }
 function render(){
@@ -165,7 +198,12 @@ el.monthTotal.textContent=fmt(m);
   el.liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;
   el.liveResult.className="status "+(c.diff===0?"ok":"warn");
 }
- if(d?.closed){const c=calc(d);el.closed.innerHTML=`<div class="card"><div class="section-title">🔒 Día cerrado</div><div class="big">${fmt(d.total)} cápsulas</div><div class="small">Recipientes: ${fmt(c.container)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div></div>`}
+ if(d?.closed){const c=calc(d);el.closed.innerHTML=`<div class="card">
+  <div class="section-title">🔒 Día cerrado</div>
+  <div class="big">${fmt(d.total)} cápsulas usadas</div>
+  <div class="small">Recipientes: ${fmt(c.container)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div>
+  <button id="editDay" style="width:100%;margin-top:12px">✏️ Editar jornada</button>
+</div>`}
  renderWeek();renderMonth();
 }
 function renderWeek(){
@@ -208,6 +246,19 @@ el.add50Caps.addEventListener("click",()=>add("addedCapsules",50));
 el.remainingGlasses.addEventListener("input",()=>updateLiveClosure());
 el.remainingCapsules.addEventListener("input",()=>updateLiveClosure());
 el.closeDay.addEventListener("click",closeDay);
+document.addEventListener("click", e=>{
+  if(e.target && e.target.id==="backToday"){
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+    const b=document.querySelector('nav button[data-view="today"]');
+    if(b) b.classList.add("active");
+    ["today","week","month"].forEach(v=>document.getElementById(v).classList.toggle("hidden",v!=="today"));
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+});
+document.addEventListener("click", e=>{
+  if(e.target && e.target.id==="editDay") editDay();
+});
+
 el.export.addEventListener("click",()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);

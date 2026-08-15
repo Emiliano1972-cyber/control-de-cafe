@@ -48,12 +48,13 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 4px;b
 <section id="startPage">
   <div class="card">
     <div class="page-title">🌅 Comenzar el día</div>
-    <div class="muted" style="margin-bottom:14px">Ingresá las cantidades que tenés al comenzar la jornada.</div>
+    <div id="startHint" class="muted" style="margin-bottom:14px">Ingresá las cantidades que tenés al comenzar la jornada.</div>
     <div class="row">
       <div><label>Vasos iniciales</label><input id="initialGlasses" type="number" min="0" inputmode="numeric" placeholder="Ej. 20"></div>
       <div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" inputmode="numeric" placeholder="Ej. 50"></div>
     </div>
     <button id="start" class="primary" style="width:100%;margin-top:12px">☕ Comenzar jornada</button>
+    <button id="returnDay" class="hidden" style="width:100%;margin-top:8px">→ Volver a la jornada de hoy</button>
   </div>
 </section>
 
@@ -123,7 +124,7 @@ let state=JSON.parse(localStorage.getItem(KEY)||'{"days":{},"archives":[]}');
 
 const $=id=>document.getElementById(id);
 const el={
-  startPage:$("startPage"),dayPage:$("dayPage"),start:$("start"),
+  startPage:$("startPage"),dayPage:$("dayPage"),start:$("start"),returnDay:$("returnDay"),backStart:$("backStart"),startHint:$("startHint"),
   initialGlasses:$("initialGlasses"),initialCapsules:$("initialCapsules"),
   todayTotal:$("todayTotal"),monthTotal:$("monthTotal"),
   addedGlasses:$("addedGlasses"),washed:$("washed"),addedCapsules:$("addedCapsules"),
@@ -159,14 +160,22 @@ function showStartPage(){
   if(d){
     el.initialGlasses.value=d.initialGlasses;
     el.initialCapsules.value=d.initialCapsules;
+    el.start.classList.add("hidden");
+    el.returnDay.classList.remove("hidden");
+    el.startHint.textContent="La jornada de hoy ya está iniciada. Estos son los valores iniciales registrados.";
   }else{
     el.initialGlasses.value="";
     el.initialCapsules.value="";
+    el.start.classList.remove("hidden");
+    el.returnDay.classList.add("hidden");
+    el.startHint.textContent="Ingresá las cantidades que tenés al comenzar la jornada.";
   }
-  el.start.scrollIntoView({behavior:"smooth",block:"start"});
+  el.startPage.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 function showDayPage(){
+  const d=day();
+  if(!d){ showStartPage(); return; }
   el.startPage.classList.add("hidden");
   el.dayPage.classList.remove("hidden");
   el.dayPage.scrollIntoView({behavior:"smooth",block:"start"});
@@ -327,6 +336,7 @@ document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()
 }));
 
 el.start.addEventListener("click",startDay);
+el.returnDay.addEventListener("click",showDayPage);
 el.backStart.addEventListener("click",showStartPage);
 el.addGlass.addEventListener("click",()=>add("addedGlasses",1));
 el.add5Glass.addEventListener("click",()=>add("addedGlasses",5));

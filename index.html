@@ -47,7 +47,7 @@ ul{padding-left:20px}
 </div>
 
 <div id="setup" class="card">
-<div class="section-title">🌅 Comenzar día</div>
+<div class="section-title">🌅 Comenzar día</div><div class="small" style="margin-bottom:10px">Podés volver a esta sección durante una jornada abierta sin borrar los movimientos registrados.</div>
 <div class="row">
 <div><label>Vasos iniciales</label><input id="initialGlasses" type="number" min="0" placeholder="Ej. 20"></div>
 <div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" placeholder="Ej. 50"></div>
@@ -56,7 +56,7 @@ ul{padding-left:20px}
 </div>
 
 <div id="active" class="hidden">
-<div style="margin:0 0 10px"><button id="backToday" class="small">← Volver al resumen de hoy</button></div>
+<div style="margin:0 0 10px"><button id="backStart" class="small">← Volver al inicio del día</button></div>
 <div class="card">
 <div class="section-title">🥤 Vasos térmicos</div>
 <div class="row">
@@ -247,12 +247,16 @@ el.remainingGlasses.addEventListener("input",()=>updateLiveClosure());
 el.remainingCapsules.addEventListener("input",()=>updateLiveClosure());
 el.closeDay.addEventListener("click",closeDay);
 document.addEventListener("click", e=>{
-  if(e.target && e.target.id==="backToday"){
-    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
-    const b=document.querySelector('nav button[data-view="today"]');
-    if(b) b.classList.add("active");
-    ["today","week","month"].forEach(v=>document.getElementById(v).classList.toggle("hidden",v!=="today"));
-    window.scrollTo({top:0,behavior:"smooth"});
+  if(e.target && e.target.id==="backStart"){
+    const setup = document.getElementById("setup");
+    if(setup){
+      setup.classList.remove("hidden");
+      setup.scrollIntoView({behavior:"smooth", block:"start"});
+      setTimeout(()=>{
+        const first = setup.querySelector("input");
+        if(first) first.focus({preventScroll:true});
+      }, 350);
+    }
   }
 });
 document.addEventListener("click", e=>{

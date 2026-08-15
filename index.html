@@ -72,13 +72,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 4px;b
   </div>
 
   <div class="card">
-    <div class="section-title">🥤 Vasos térmicos</div>
+    <div class="section-title">🥤 Vasos térmicos (stock)</div>
     <div class="row"><button id="addGlass">+1 vaso</button><button id="add5Glass">+5 vasos</button></div>
-    <p class="small">Agregados hoy: <strong id="addedGlasses">0</strong></p>
+    <p class="small">Agregados hoy al stock: <strong id="addedGlasses">0</strong></p>
+    <p class="small">Vasos utilizados: <strong id="usedGlasses">0</strong> <span id="usedGlassesHint"></span></p>
   </div>
 
   <div class="card">
-    <div class="section-title">🍵 Tazas lavadas</div>
+    <div class="section-title">🍵 Tazas lavadas = cápsulas usadas</div>
     <div class="row"><button id="wash1">+1 taza</button><button id="wash5">+5 tazas</button><button id="washUndo">−1</button></div>
     <p class="small">Lavadas hoy: <strong id="washed">0</strong></p>
   </div>
@@ -127,7 +128,7 @@ const el={
   startPage:$("startPage"),dayPage:$("dayPage"),start:$("start"),returnDay:$("returnDay"),backStart:$("backStart"),startHint:$("startHint"),
   initialGlasses:$("initialGlasses"),initialCapsules:$("initialCapsules"),
   todayTotal:$("todayTotal"),todaySource:$("todaySource"),monthTotal:$("monthTotal"),
-  addedGlasses:$("addedGlasses"),washed:$("washed"),addedCapsules:$("addedCapsules"),
+  addedGlasses:$("addedGlasses"),usedGlasses:$("usedGlasses"),usedGlassesHint:$("usedGlassesHint"),washed:$("washed"),addedCapsules:$("addedCapsules"),
   remainingGlasses:$("remainingGlasses"),remainingCapsules:$("remainingCapsules"),
   liveResult:$("liveResult"),closeDay:$("closeDay"),editDay:$("editDay"),
   closedCard:$("closedCard"),addGlass:$("addGlass"),add5Glass:$("add5Glass"),
@@ -227,9 +228,9 @@ function updateLive(){
      <div>📦 <b>Dispenser: ${fmt(c.dispenser)} cápsulas usadas</b></div>
      <div>🔎 <b>Diferencia entre controles: ${fmt(c.diff)} cápsulas</b></div>
      <div class="small" style="margin-top:8px">
-       Recipientes = vasos usados (${fmt(c.glasses)}) + tazas lavadas (${fmt(d.washed)}).
-       <br>Vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(rgv)} restantes.
-       <br>Dispenser: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(rcv)} restantes.
+       Recipientes = ${fmt(c.glasses)} vasos utilizados + ${fmt(d.washed)} tazas lavadas.
+       <br>Stock de vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(rgv)} restantes = ${fmt(c.glasses)} utilizados.
+       <br>Dispenser: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(rcv)} restantes = ${fmt(c.dispenser)} usadas.
      </div>`;
   el.liveResult.className="status "+(c.diff===0?"ok":"warn");
 }
@@ -272,13 +273,16 @@ function renderDay(){
   el.initialGlasses.value=d.initialGlasses;
   el.initialCapsules.value=d.initialCapsules;
   el.addedGlasses.textContent=d.addedGlasses;
+  const usedGlassesNow = d.closed ? calc(d).glasses : 0;
+  el.usedGlasses.textContent=fmt(usedGlassesNow);
+  el.usedGlassesHint.textContent=d.closed ? "" : "(se calcula al cierre)";
   el.washed.textContent=d.washed;
   el.addedCapsules.textContent=d.addedCapsules;
-  const liveUsed=d.closed ? d.total : Math.max(0,(d.addedGlasses||0)+(d.washed||0));
+  const liveUsed=d.closed ? d.total : Math.max(0,(d.washed||0));
   el.todayTotal.textContent=fmt(liveUsed);
   el.todaySource.textContent=d.closed
     ? "Total confirmado al cerrar"
-    : "Estimación: vasos utilizados + tazas lavadas";
+    : "Parcial: solo tazas lavadas (los vasos se calculan al cierre)";
   el.monthTotal.textContent=fmt(monthTotal()+liveUsed);
 
   if(d.closed){
@@ -299,8 +303,8 @@ function renderDay(){
         </div>
         <div class="small" style="margin-top:8px">
           Recipientes = ${fmt(c.glasses)} vasos utilizados + ${fmt(d.washed)} tazas lavadas.
-          <br>Vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(d.remainingGlasses)} restantes.
-          <br>Dispenser: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(d.remainingCapsules)} restantes.
+          <br>Stock de vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(d.remainingGlasses)} restantes = ${fmt(c.glasses)} utilizados.
+          <br>Dispenser: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(d.remainingCapsules)} restantes = ${fmt(c.dispenser)} usadas.
         </div>
       </div>`;
   }else{

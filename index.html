@@ -67,8 +67,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 4px;b
   </div>
 
   <div class="grid">
-    <div class="card"><div class="muted">Hoy</div><div id="todayTotal" class="metric">0</div><div class="muted">cápsulas usadas</div></div>
-    <div class="card"><div class="muted">Mes</div><div id="monthTotal" class="metric">0</div><div class="muted">cápsulas</div></div>
+    <div class="card"><div class="muted">Hoy</div><div id="todayTotal" class="metric">0</div><div class="muted">cápsulas usadas</div><div id="todaySource" class="small"></div></div>
+    <div class="card"><div class="muted">Mes</div><div id="monthTotal" class="metric">0</div><div class="muted">cápsulas usadas</div></div>
   </div>
 
   <div class="card">
@@ -126,7 +126,7 @@ const $=id=>document.getElementById(id);
 const el={
   startPage:$("startPage"),dayPage:$("dayPage"),start:$("start"),returnDay:$("returnDay"),backStart:$("backStart"),startHint:$("startHint"),
   initialGlasses:$("initialGlasses"),initialCapsules:$("initialCapsules"),
-  todayTotal:$("todayTotal"),monthTotal:$("monthTotal"),
+  todayTotal:$("todayTotal"),todaySource:$("todaySource"),monthTotal:$("monthTotal"),
   addedGlasses:$("addedGlasses"),washed:$("washed"),addedCapsules:$("addedCapsules"),
   remainingGlasses:$("remainingGlasses"),remainingCapsules:$("remainingCapsules"),
   liveResult:$("liveResult"),closeDay:$("closeDay"),editDay:$("editDay"),
@@ -223,10 +223,13 @@ function updateLive(){
   const temp={...d,remainingGlasses:rgv,remainingCapsules:rcv};
   const c=calc(temp);
   el.liveResult.innerHTML=
-    `🥤 Recipientes: <b>${fmt(c.containers)}</b> · 📦 Dispenser: <b>${fmt(c.dispenser)}</b> · 🔎 Diferencia: <b>${fmt(c.diff)}</b>
-     <div class="small" style="margin-top:6px">
-     Vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(rgv)} restantes.
-     Cápsulas: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(rcv)} restantes.
+    `<div>🥤 <b>Recipientes: ${fmt(c.containers)} cápsulas usadas</b></div>
+     <div>📦 <b>Dispenser: ${fmt(c.dispenser)} cápsulas usadas</b></div>
+     <div>🔎 <b>Diferencia entre controles: ${fmt(c.diff)} cápsulas</b></div>
+     <div class="small" style="margin-top:8px">
+       Recipientes = vasos usados (${fmt(c.glasses)}) + tazas lavadas (${fmt(d.washed)}).
+       <br>Vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(rgv)} restantes.
+       <br>Dispenser: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(rcv)} restantes.
      </div>`;
   el.liveResult.className="status "+(c.diff===0?"ok":"warn");
 }
@@ -271,8 +274,12 @@ function renderDay(){
   el.addedGlasses.textContent=d.addedGlasses;
   el.washed.textContent=d.washed;
   el.addedCapsules.textContent=d.addedCapsules;
-  el.todayTotal.textContent=d.closed?fmt(d.total):"0";
-  el.monthTotal.textContent=fmt(monthTotal());
+  const liveUsed=d.closed ? d.total : Math.max(0,(d.addedGlasses||0)+(d.washed||0));
+  el.todayTotal.textContent=fmt(liveUsed);
+  el.todaySource.textContent=d.closed
+    ? "Total confirmado al cerrar"
+    : "Estimación: vasos utilizados + tazas lavadas";
+  el.monthTotal.textContent=fmt(monthTotal()+liveUsed);
 
   if(d.closed){
     el.closeDay.classList.add("hidden");
@@ -285,7 +292,16 @@ function renderDay(){
       `<div class="card">
         <div class="section-title">🔒 Día cerrado</div>
         <div class="big">${fmt(d.total)} cápsulas usadas</div>
-        <div class="small">Recipientes: ${fmt(c.containers)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div>
+        <div style="margin-top:8px">
+          <div>🥤 Recipientes: <b>${fmt(c.containers)} cápsulas usadas</b></div>
+          <div>📦 Dispenser: <b>${fmt(c.dispenser)} cápsulas usadas</b></div>
+          <div>🔎 Diferencia entre controles: <b>${fmt(c.diff)} cápsulas</b></div>
+        </div>
+        <div class="small" style="margin-top:8px">
+          Recipientes = ${fmt(c.glasses)} vasos utilizados + ${fmt(d.washed)} tazas lavadas.
+          <br>Vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(d.remainingGlasses)} restantes.
+          <br>Dispenser: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(d.remainingCapsules)} restantes.
+        </div>
       </div>`;
   }else{
     el.closeDay.classList.remove("hidden");
@@ -302,7 +318,7 @@ function renderWeek(){
   const total=ds.reduce((s,d)=>s+d.total,0);
   el.weekSummary.innerHTML=ds.length?
     `<div class="big">${fmt(total)} cápsulas</div>
-     <table><tr><th>Día</th><th>Recip.</th><th>Disp.</th><th>Total</th></tr>
+     <table><tr><th>Día</th><th>Recipientes</th><th>Dispenser</th><th>Usadas</th></tr>
      ${ds.map(d=>{const c=calc(d);return `<tr><td>${d.date.slice(8,10)}/${d.date.slice(5,7)}</td><td>${c.containers}</td><td>${c.dispenser}</td><td>${d.total}</td></tr>`}).join("")}</table>`
     :"Todavía no hay días cerrados.";
 }

@@ -42,7 +42,7 @@ ul{padding-left:20px}
 
 <section id="today">
 <div class="grid">
-<div class="card"><div class="muted">Hoy</div><div id="todayTotal" class="metric">0</div><div class="muted">cápsulas</div></div>
+<div class="card"><div class="muted">Hoy</div><div id="todayTotal" class="metric">0</div><div class="muted">cápsulas usadas</div></div>
 <div class="card"><div class="muted">Mes</div><div id="monthTotal" class="metric">0</div><div class="muted">cápsulas</div></div>
 </div>
 
@@ -83,10 +83,10 @@ ul{padding-left:20px}
 <div class="card">
 <div class="section-title">🌙 Cierre del día</div>
 <div class="row">
-<div><label>Vasos que quedan</label><input id="remainingGlasses" type="number" min="0" placeholder="Ej. 7"></div>
-<div><label>Cápsulas que quedan</label><input id="remainingCapsules" type="number" min="0" placeholder="Ej. 51"></div>
+<div><label>Vasos que quedan</label><input id="remainingGlasses" type="number" min="0" inputmode="numeric" placeholder="Ej. 7"></div>
+<div><label>Cápsulas que quedan</label><input id="remainingCapsules" type="number" min="0" inputmode="numeric" placeholder="Ej. 51"></div>
 </div>
-<div class="status" id="liveResult">Completá los datos de cierre.</div>
+<div class="status" id="liveResult">Completá los datos de cierre. Al cerrar, el número de “Hoy” pasará a mostrar las cápsulas usadas.</div>
 <button id="closeDay" class="primary" style="width:100%;margin-top:12px">🔒 Cerrar día</button>
 </div>
 </div>
@@ -141,10 +141,30 @@ function add(field,n){const d=day();if(!d||d.closed)return;d[field]+=n;save();re
 function monthDays(){return Object.values(state.days).filter(d=>d.date.slice(0,7)===monthKey()).sort((a,b)=>a.date.localeCompare(b.date))}
 function monthTotal(){return monthDays().filter(d=>d.closed).reduce((s,d)=>s+d.total,0)}
 function weekDays(){const ds=monthDays(); return ds.filter(d=>d.closed).slice(-5)}
+function updateLiveClosure(){
+  const d=day();
+  if(!d || d.closed) return;
+  const rg=el.remainingGlasses.value;
+  const rc=el.remainingCapsules.value;
+  d.remainingGlasses = rg === "" ? d.initialGlasses + d.addedGlasses : Math.max(0,+rg||0);
+  d.remainingCapsules = rc === "" ? d.initialCapsules + d.addedCapsules : Math.max(0,+rc||0);
+  const c=calc(d);
+  el.liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;
+  el.liveResult.className="status "+(c.diff===0?"ok":"warn");
+}
 function render(){
- const d=day(), m=monthTotal(); el.todayTotal.textContent=d?.closed?fmt(d.total):d?fmt(calc(d).dispenser):"0"; el.monthTotal.textContent=fmt(m);
+ const d=day(), m=monthTotal();
+el.todayTotal.textContent=d?.closed ? fmt(d.total) : "0";
+el.monthTotal.textContent=fmt(m);
  el.setup.classList.toggle("hidden",!!d); el.active.classList.toggle("hidden",!d||d.closed); el.closed.classList.toggle("hidden",!d||!d.closed);
- if(d&&!d.closed){el.addedGlasses.textContent=d.addedGlasses;el.washed.textContent=d.washed;el.addedCapsules.textContent=d.addedCapsules;el.remainingGlasses.value=d.remainingGlasses;el.remainingCapsules.value=d.remainingCapsules;const c=calc(d);el.liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;el.liveResult.className="status "+(c.diff===0?"ok":"warn")}
+ if(d&&!d.closed){
+  el.addedGlasses.textContent=d.addedGlasses;
+  el.washed.textContent=d.washed;
+  el.addedCapsules.textContent=d.addedCapsules;
+  const c=calc(d);
+  el.liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;
+  el.liveResult.className="status "+(c.diff===0?"ok":"warn");
+}
  if(d?.closed){const c=calc(d);el.closed.innerHTML=`<div class="card"><div class="section-title">🔒 Día cerrado</div><div class="big">${fmt(d.total)} cápsulas</div><div class="small">Recipientes: ${fmt(c.container)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div></div>`}
  renderWeek();renderMonth();
 }
@@ -185,8 +205,8 @@ el.washUndo.addEventListener("click",()=>add("washed",-1));
 el.add10Caps.addEventListener("click",()=>add("addedCapsules",10));
 el.add25Caps.addEventListener("click",()=>add("addedCapsules",25));
 el.add50Caps.addEventListener("click",()=>add("addedCapsules",50));
-el.remainingGlasses.addEventListener("input",render);
-el.remainingCapsules.addEventListener("input",render);
+el.remainingGlasses.addEventListener("input",()=>updateLiveClosure());
+el.remainingCapsules.addEventListener("input",()=>updateLiveClosure());
 el.closeDay.addEventListener("click",closeDay);
 el.export.addEventListener("click",()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});

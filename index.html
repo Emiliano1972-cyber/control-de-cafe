@@ -239,7 +239,7 @@ function updateLive(){
   const liveClosedUsed = Math.max(0,c.containers);
   el.todayTotal.textContent=fmt(liveClosedUsed);
   el.todaySource.textContent="Total calculado con el cierre";
-  el.monthTotal.textContent=fmt(monthTotal()+liveClosedUsed);
+  el.monthTotal.textContent=fmt(monthTotal());
 }
 
 function closeDay(){
@@ -290,7 +290,7 @@ function renderDay(){
   el.todaySource.textContent=d.closed
     ? "Total confirmado al cerrar"
     : "Parcial: solo tazas lavadas (los vasos se calculan al cierre)";
-  el.monthTotal.textContent=fmt(monthTotal()+liveUsed);
+  el.monthTotal.textContent=fmt(monthTotal() + (d.closed ? 0 : liveUsed));
 
   if(d.closed){
     el.closeDay.classList.add("hidden");

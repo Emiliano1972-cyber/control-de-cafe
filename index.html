@@ -233,6 +233,13 @@ function updateLive(){
        <br>Dispenser: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(rcv)} restantes = ${fmt(c.dispenser)} usadas.
      </div>`;
   el.liveResult.className="status "+(c.diff===0?"ok":"warn");
+
+  // Actualizar inmediatamente los contadores superiores con el resultado del cierre.
+  // Antes de cerrar el día, los vasos agregados son stock y no consumo.
+  const liveClosedUsed = Math.max(0,c.containers);
+  el.todayTotal.textContent=fmt(liveClosedUsed);
+  el.todaySource.textContent="Total calculado con el cierre";
+  el.monthTotal.textContent=fmt(monthTotal()+liveClosedUsed);
 }
 
 function closeDay(){

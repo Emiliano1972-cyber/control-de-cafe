@@ -49,8 +49,8 @@ ul{padding-left:20px}
 <div id="setup" class="card">
 <div class="section-title">🌅 Comenzar día</div>
 <div class="row">
-<div><label>Vasos iniciales</label><input id="initialGlasses" type="number" min="0" value="20"></div>
-<div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" value="50"></div>
+<div><label>Vasos iniciales</label><input id="initialGlasses" type="number" min="0" placeholder="Ej. 20"></div>
+<div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" placeholder="Ej. 50"></div>
 </div>
 <button id="start" class="primary" style="width:100%;margin-top:12px">Comenzar jornada</button>
 </div>
@@ -83,8 +83,8 @@ ul{padding-left:20px}
 <div class="card">
 <div class="section-title">🌙 Cierre del día</div>
 <div class="row">
-<div><label>Vasos que quedan</label><input id="remainingGlasses" type="number" min="0" value="0"></div>
-<div><label>Cápsulas que quedan</label><input id="remainingCapsules" type="number" min="0" value="0"></div>
+<div><label>Vasos que quedan</label><input id="remainingGlasses" type="number" min="0" placeholder="Ej. 7"></div>
+<div><label>Cápsulas que quedan</label><input id="remainingCapsules" type="number" min="0" placeholder="Ej. 51"></div>
 </div>
 <div class="status" id="liveResult">Completá los datos de cierre.</div>
 <button id="closeDay" class="primary" style="width:100%;margin-top:12px">🔒 Cerrar día</button>
@@ -123,7 +123,7 @@ function fmt(n){return Number(n||0).toLocaleString("es-AR")}
 function startDay(){
  const d=todayKey();
  if(state.days[d]) return render();
- state.days[d]={started:true,closed:false,date:d,initialGlasses:+initialGlasses.value||0,addedGlasses:0,washed:0,initialCapsules:+initialCapsules.value||0,addedCapsules:0,remainingGlasses:+initialGlasses.value||0,remainingCapsules:+initialCapsules.value||0,total:0};
+ state.days[d]={started:true,closed:false,date:d,initialGlasses:+el.initialGlasses.value||0,addedGlasses:0,washed:0,initialCapsules:+el.initialCapsules.value||0,addedCapsules:0,remainingGlasses:+el.initialGlasses.value||0,remainingCapsules:+el.initialCapsules.value||0,total:0};
  save(); render();
 }
 function calc(d){
@@ -133,8 +133,8 @@ function calc(d){
 }
 function closeDay(){
  const d=day(); if(!d||d.closed)return;
- d.remainingGlasses=Math.max(0,+remainingGlasses.value||0);
- d.remainingCapsules=Math.max(0,+remainingCapsules.value||0);
+ d.remainingGlasses=Math.max(0,+el.remainingGlasses.value||0);
+ d.remainingCapsules=Math.max(0,+el.remainingCapsules.value||0);
  const c=calc(d); d.total=c.dispenser; d.closed=true; d.closedAt=new Date().toISOString(); save(); render();
 }
 function add(field,n){const d=day();if(!d||d.closed)return;d[field]+=n;save();render()}
@@ -142,25 +142,62 @@ function monthDays(){return Object.values(state.days).filter(d=>d.date.slice(0,7
 function monthTotal(){return monthDays().filter(d=>d.closed).reduce((s,d)=>s+d.total,0)}
 function weekDays(){const ds=monthDays(); return ds.filter(d=>d.closed).slice(-5)}
 function render(){
- const d=day(), m=monthTotal(); todayTotal.textContent=d?.closed?fmt(d.total):d?fmt(calc(d).dispenser):"0"; monthTotal.textContent=fmt(m);
- setup.classList.toggle("hidden",!!d); active.classList.toggle("hidden",!d||d.closed); closed.classList.toggle("hidden",!d||!d.closed);
- if(d&&!d.closed){addedGlasses.textContent=d.addedGlasses;washed.textContent=d.washed;addedCapsules.textContent=d.addedCapsules;remainingGlasses.value=d.remainingGlasses;remainingCapsules.value=d.remainingCapsules;const c=calc(d);liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;liveResult.className="status "+(c.diff===0?"ok":"warn")}
- if(d?.closed){const c=calc(d);closed.innerHTML=`<div class="card"><div class="section-title">🔒 Día cerrado</div><div class="big">${fmt(d.total)} cápsulas</div><div class="small">Recipientes: ${fmt(c.container)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div></div>`}
+ const d=day(), m=monthTotal(); el.todayTotal.textContent=d?.closed?fmt(d.total):d?fmt(calc(d).dispenser):"0"; el.monthTotal.textContent=fmt(m);
+ el.setup.classList.toggle("hidden",!!d); el.active.classList.toggle("hidden",!d||d.closed); el.closed.classList.toggle("hidden",!d||!d.closed);
+ if(d&&!d.closed){el.addedGlasses.textContent=d.addedGlasses;el.washed.textContent=d.washed;el.addedCapsules.textContent=d.addedCapsules;el.remainingGlasses.value=d.remainingGlasses;el.remainingCapsules.value=d.remainingCapsules;const c=calc(d);el.liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;el.liveResult.className="status "+(c.diff===0?"ok":"warn")}
+ if(d?.closed){const c=calc(d);el.closed.innerHTML=`<div class="card"><div class="section-title">🔒 Día cerrado</div><div class="big">${fmt(d.total)} cápsulas</div><div class="small">Recipientes: ${fmt(c.container)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div></div>`}
  renderWeek();renderMonth();
 }
 function renderWeek(){
  const ds=weekDays(); let total=ds.reduce((s,d)=>s+d.total,0);
- weekSummary.innerHTML=ds.length?`<div class="big">${fmt(total)} cápsulas</div><table><tr><th>Día</th><th>Recip.</th><th>Disp.</th><th>Total</th></tr>${ds.map(d=>{const c=calc(d);return `<tr><td>${d.date.slice(8,10)}/${d.date.slice(5,7)}</td><td>${c.container}</td><td>${c.dispenser}</td><td>${d.total}</td></tr>`}).join("")}</table>`:"Todavía no hay días cerrados.";
+ el.weekSummary.innerHTML=ds.length?`<div class="big">${fmt(total)} cápsulas</div><table><tr><th>Día</th><th>Recip.</th><th>Disp.</th><th>Total</th></tr>${ds.map(d=>{const c=calc(d);return `<tr><td>${d.date.slice(8,10)}/${d.date.slice(5,7)}</td><td>${c.container}</td><td>${c.dispenser}</td><td>${d.total}</td></tr>`}).join("")}</table>`:"Todavía no hay días cerrados.";
 }
 function renderMonth(){
  const total=monthTotal(), boxes=Math.ceil(total/50), full=Math.floor(total/50), rem=total%50;
- monthSummary.innerHTML=`<div class="grid"><div><div class="muted">Cápsulas</div><div class="big">${fmt(total)}</div></div><div><div class="muted">Cajas equivalentes</div><div class="big">${full}${rem?" + "+rem:""}</div></div></div><p><b>Pedido recomendado: ${boxes} cajas</b></p><p class="small">${rem?`Quedan ${rem} cápsulas por completar la última caja.`:"Consumo exacto de cajas completas."}</p>`;
- archive.innerHTML=state.archives.length?state.archives.map(a=>`<p><b>${a.month}</b>: ${a.total} cápsulas · pedido ${a.order} cajas</p>`).join(""):"Sin meses archivados.";
+ el.monthSummary.innerHTML=`<div class="grid"><div><div class="muted">Cápsulas</div><div class="big">${fmt(total)}</div></div><div><div class="muted">Cajas equivalentes</div><div class="big">${full}${rem?" + "+rem:""}</div></div></div><p><b>Pedido recomendado: ${boxes} cajas</b></p><p class="small">${rem?`Quedan ${rem} cápsulas por completar la última caja.`:"Consumo exacto de cajas completas."}</p>`;
+ el.archive.innerHTML=state.archives.length?state.archives.map(a=>`<p><b>${a.month}</b>: ${a.total} cápsulas · pedido ${a.order} cajas</p>`).join(""):"Sin meses archivados.";
 }
-document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");["today","week","month"].forEach(v=>document.getElementById(v).classList.toggle("hidden",v!==b.dataset.view))}));
-start.addEventListener("click",startDay);addGlass.addEventListener("click",()=>add("addedGlasses",1));add5Glass.addEventListener("click",()=>add("addedGlasses",5));wash1.addEventListener("click",()=>add("washed",1));wash5.addEventListener("click",()=>add("washed",5));washUndo.addEventListener("click",()=>add("washed",-1));add10Caps.addEventListener("click",()=>add("addedCapsules",10));add25Caps.addEventListener("click",()=>add("addedCapsules",25));add50Caps.addEventListener("click",()=>add("addedCapsules",50));remainingGlasses.addEventListener("input",render);remainingCapsules.addEventListener("input",render);closeDay.addEventListener("click",closeDay);
-export.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`cafe-control-${monthKey()}.json`;a.click();URL.revokeObjectURL(a.href)});
-reset.addEventListener("click",()=>{if(confirm("¿Borrar todos los datos del mes? Exportá un respaldo antes.")){state={days:{},archives:state.archives};save();render()}});
+const $ = id => document.getElementById(id);
+const el = {
+  start: $("start"), initialGlasses: $("initialGlasses"), initialCapsules: $("initialCapsules"),
+  setup: $("setup"), active: $("active"), closed: $("closed"),
+  todayTotal: $("todayTotal"), monthTotal: $("monthTotal"),
+  addedGlasses: $("addedGlasses"), washed: $("washed"), addedCapsules: $("addedCapsules"),
+  remainingGlasses: $("remainingGlasses"), remainingCapsules: $("remainingCapsules"),
+  liveResult: $("liveResult"), weekSummary: $("weekSummary"), monthSummary: $("monthSummary"),
+  archive: $("archive"), addGlass: $("addGlass"), add5Glass: $("add5Glass"),
+  wash1: $("wash1"), wash5: $("wash5"), washUndo: $("washUndo"),
+  add10Caps: $("add10Caps"), add25Caps: $("add25Caps"), add50Caps: $("add50Caps"),
+  closeDay: $("closeDay"), export: $("export"), reset: $("reset")
+};
+
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  ["today","week","month"].forEach(v=>document.getElementById(v).classList.toggle("hidden",v!==b.dataset.view));
+}));
+el.start.addEventListener("click",startDay);
+el.addGlass.addEventListener("click",()=>add("addedGlasses",1));
+el.add5Glass.addEventListener("click",()=>add("addedGlasses",5));
+el.wash1.addEventListener("click",()=>add("washed",1));
+el.wash5.addEventListener("click",()=>add("washed",5));
+el.washUndo.addEventListener("click",()=>add("washed",-1));
+el.add10Caps.addEventListener("click",()=>add("addedCapsules",10));
+el.add25Caps.addEventListener("click",()=>add("addedCapsules",25));
+el.add50Caps.addEventListener("click",()=>add("addedCapsules",50));
+el.remainingGlasses.addEventListener("input",render);
+el.remainingCapsules.addEventListener("input",render);
+el.closeDay.addEventListener("click",closeDay);
+el.export.addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`cafe-control-${monthKey()}.json`; a.click(); URL.revokeObjectURL(a.href);
+});
+el.reset.addEventListener("click",()=>{
+  if(confirm("¿Borrar todos los datos del mes? Exportá un respaldo antes.")){
+    state={days:{},archives:state.archives}; save(); render();
+  }
+});
 render();
 </script>
 </body></html>

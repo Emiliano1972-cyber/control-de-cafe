@@ -115,8 +115,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 4px;b
 
 <div class="card">
   <div class="section-title">💾 Datos</div>
-  <div class="row"><button id="export">Exportar respaldo</button><button id="reset" class="danger">Borrar mes</button></div>
-  <div class="small" style="margin-top:8px">Los datos se guardan localmente en este dispositivo. Exportá un respaldo al cerrar cada mes.</div>
+  <div class="row"><button id="export">📄 Exportar informe</button><button id="reset" class="danger">Borrar mes</button></div>
+  <div class="small" style="margin-top:8px">Los datos se guardan localmente en este dispositivo. Exportá el informe al cerrar cada mes: incluye el respaldo técnico y un informe legible.</div>
 </div>
 
 <script>
@@ -378,13 +378,128 @@ el.remainingCapsules.addEventListener("input",updateLive);
 el.closeDay.addEventListener("click",closeDay);
 el.editDay.addEventListener("click",editDay);
 
+function escHtml(v){
+  return String(v??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+function fmtDate(iso){
+  const p=String(iso).split("-");
+  return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : iso;
+}
+function reportHtml(){
+  const keys=Object.keys(state.days).sort();
+  const rows=keys.map(k=>{
+    const d=state.days[k];
+    const c=calc(d);
+    return `<tr>
+      <td>${escHtml(fmtDate(k))}</td>
+      <td>${d.closed?"Cerrado":"Abierto"}</td>
+      <td>${fmt(c.glasses)}</td>
+      <td>${fmt(d.washed)}</td>
+      <td><b>${fmt(d.total)}</b></td>
+      <td>${fmt(c.dispenser)}</td>
+      <td>${fmt(c.diff)}</td>
+    </tr>`;
+  }).join("");
+  const total=keys.reduce((s,k)=>s+Number(state.days[k].total||0),0);
+  const closed=keys.filter(k=>state.days[k].closed).length;
+  return `<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Control de Café · ${escHtml(monthKey())}</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f6f2ed;color:#241d17;margin:0;padding:24px}
+main{max-width:900px;margin:auto;background:white;border-radius:18px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+h1{margin-top:0} .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{background:#f7f3ee;border-radius:14px;padding:16px}.big{font-size:28px;font-weight:700}
+table{width:100%;border-collapse:collapse;margin-top:20px}th,td{text-align:left;padding:10px;border-bottom:1px solid #ddd}
+th{background:#eee8e0} .ok{font-weight:700} .note{color:#6b625a}
+@media(max-width:650px){.grid{grid-template-columns:1fr}table{font-size:13px}}
+</style></head><body><main>
+<h1>☕ Control de Café</h1>
+<p class="note">Informe mensual · ${escHtml(monthKey())}</p>
+<div class="grid">
+<div class="card"><div>Cápsulas usadas</div><div class="big">${fmt(total)}</div></div>
+<div class="card"><div>Jornadas registradas</div><div class="big">${keys.length}</div></div>
+<div class="card"><div>Jornadas cerradas</div><div class="big">${closed}</div></div>
+</div>
+<h2>Detalle de jornadas</h2>
+<table><thead><tr>
+<th>Fecha</th><th>Estado</th><th>Vasos utilizados</th><th>Tazas lavadas</th><th>Cápsulas usadas</th><th>Dispenser</th><th>Diferencia</th>
+</tr></thead><tbody>${rows || '<tr><td colspan="7">No hay jornadas registradas.</td></tr>'}</tbody></table>
+<h2>Datos del respaldo</h2>
+<p class="note">Este informe se exporta junto con el respaldo JSON técnico. El JSON conserva todos los datos necesarios para recuperar la información de la aplicación.</p>
+</main></body></html>`;
+}
+
+/* ZIP mínimo con archivos almacenados (sin compresión), compatible con Safari.
+   Incluye el JSON técnico y el informe HTML en una sola descarga. */
+function crc32(bytes){
+  let table=crc32.table;
+  if(!table){
+    table=new Uint32Array(256);
+    for(let n=0;n<256;n++){
+      let c=n;
+      for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+      table[n]=c>>>0;
+    }
+    crc32.table=table;
+  }
+  let c=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) c=table[(c^bytes[i])&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function u16(v){return [v&255,(v>>>8)&255];}
+function u32(v){return [v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];}
+function concatBytes(parts){
+  const total=parts.reduce((n,p)=>n+p.length,0);
+  const out=new Uint8Array(total); let at=0;
+  for(const p of parts){out.set(p,at);at+=p.length;}
+  return out;
+}
+function makeZip(files){
+  const enc=new TextEncoder(), local=[], central=[]; let offset=0;
+  const now=new Date(), time=(now.getHours()<<11)|(now.getMinutes()<<5)|Math.floor(now.getSeconds()/2);
+  const date=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+  for(const f of files){
+    const name=enc.encode(f.name), data=enc.encode(f.data), crc=crc32(data);
+    const lh=new Uint8Array([
+      0x50,0x4b,0x03,0x04,20,0,0,0,0,0,...u16(time),...u16(date),
+      ...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),0, ...name
+    ]);
+    local.push(lh,data);
+    const ch=new Uint8Array([
+      0x50,0x4b,0x01,0x02,20,0,20,0,0,0,0,0,...u16(time),...u16(date),
+      ...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),0,0,0,0,0,0, ...u32(offset), ...name
+    ]);
+    central.push(ch);
+    offset += lh.length + data.length;
+  }
+  const localBytes=concatBytes(local), centralBytes=concatBytes(central);
+  const end=new Uint8Array([
+    0x50,0x4b,0x05,0x06,0,0,0,0,...u16(files.length),...u16(files.length),
+    ...u32(centralBytes.length),...u32(localBytes.length),0,0
+  ]);
+  return concatBytes([localBytes,centralBytes,end]);
+}
+
 el.export.addEventListener("click",()=>{
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const month=monthKey();
+  const json=JSON.stringify(state,null,2);
+  const report=reportHtml();
+  const zip=makeZip([
+    {name:`respaldo-control-de-cafe-${month}.json`,data:json},
+    {name:`informe-control-de-cafe-${month}.html`,data:report}
+  ]);
+  const blob=new Blob([zip],{type:"application/zip"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download=`cafe-control-${monthKey()}.json`;
+  a.download=`control-de-cafe-${month}.zip`;
   a.click();
-  URL.revokeObjectURL(a.href);
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
 
 el.reset.addEventListener("click",()=>{

@@ -116,7 +116,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 4px;b
 <div class="card">
   <div class="section-title">💾 Datos</div>
   <div class="row"><button id="export">📄 Exportar informe</button><button id="reset" class="danger">Borrar mes</button></div>
-  <div class="small" style="margin-top:8px">Los datos se guardan localmente en este dispositivo. Exportá el informe al cerrar cada mes: incluye el respaldo técnico y un informe legible.</div>
+  <div class="small" style="margin-top:8px">Los datos se guardan localmente en este dispositivo. Exportá el informe al cerrar cada mes: incluye el informe legible y el respaldo técnico completo.</div>
 </div>
 
 <script>
@@ -540,14 +540,33 @@ el.export.addEventListener("click",()=>{
   const month=monthKey();
   const json=JSON.stringify(state,null,2);
   const report=reportHtml();
-  const zip=makeZip([
-    {name:`respaldo-control-de-cafe-${month}.json`,data:json},
-    {name:`informe-control-de-cafe-${month}.html`,data:report}
-  ]);
-  const blob=new Blob([zip],{type:"application/zip"});
+  const safeJson=json.replace(/</g,"\\u003c").replace(/>/g,"\\u003e").replace(/&/g,"\\u0026");
+  const fullReport=report.replace(
+    "</body>",
+    `<section style="margin-top:28px;padding:18px;background:#f7f3ee;border-radius:14px">
+      <h2>💾 Respaldo técnico</h2>
+      <p>Este mismo archivo contiene el respaldo JSON completo de la aplicación.</p>
+      <button id="downloadJson" style="padding:12px 18px;border:0;border-radius:10px;background:#6b4f35;color:white;font-size:16px">
+        Descargar respaldo JSON
+      </button>
+    </section>
+    <script>
+      const backupData=${safeJson};
+      document.getElementById("downloadJson").addEventListener("click",()=>{
+        const blob=new Blob([JSON.stringify(backupData,null,2)],{type:"application/json"});
+        const a=document.createElement("a");
+        a.href=URL.createObjectURL(blob);
+        a.download="respaldo-control-de-cafe-${month}.json";
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      });
+    <\/script>
+    </body>`
+  );
+  const blob=new Blob([fullReport],{type:"text/html;charset=utf-8"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download=`control-de-cafe-${month}.zip`;
+  a.download=`informe-control-de-cafe-${month}.html`;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6b4f35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Café">
+<link rel="manifest" href="manifest.webmanifest">
+<title>☕ Control de Café</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#211b16;background:#f6f2ed}
+*{box-sizing:border-box}body{margin:0;padding:20px;max-width:760px;margin:auto}
+h1{font-size:25px;margin:0 0 4px}.sub{color:#756a61;font-size:14px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{background:#fff;border:1px solid #ded6ce;border-radius:16px;padding:15px;margin:12px 0}
+.metric{font-size:30px;font-weight:700}.muted{color:#756a61;font-size:13px}
+button,input{font:inherit}button{border:1px solid #cfc5bb;background:#fff;border-radius:12px;padding:13px;min-height:48px}
+button.primary{background:#6b4f35;color:#fff;border-color:#6b4f35;font-weight:650}
+button.danger{color:#8a2f2f}.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+label{display:block;font-size:13px;color:#756a61;margin-bottom:6px}
+input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;background:#fff}
+.big{font-size:22px;font-weight:700}.section-title{font-weight:650;margin-bottom:12px}
+.status{padding:12px;border-radius:12px;background:#eee8e2;margin-top:10px}
+.ok{background:#e8f3e9}.warn{background:#fff1d9}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 4px;border-bottom:1px solid #eee;text-align:right}td:first-child,th:first-child{text-align:left}
+.small{font-size:12px;color:#756a61}.hidden{display:none!important}
+nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+nav button.active{background:#e8dfd6;border-color:#bca894}
+ul{padding-left:20px}
+</style>
+</head>
+<body>
+<h1>☕ Control de Café</h1>
+<div class="sub">Conteo diario · control cruzado · consumo semanal y mensual</div>
+
+<nav>
+<button data-view="today" class="active">Hoy</button>
+<button data-view="week">Semana</button>
+<button data-view="month">Mes</button>
+</nav>
+
+<section id="today">
+<div class="grid">
+<div class="card"><div class="muted">Hoy</div><div id="todayTotal" class="metric">0</div><div class="muted">cápsulas</div></div>
+<div class="card"><div class="muted">Mes</div><div id="monthTotal" class="metric">0</div><div class="muted">cápsulas</div></div>
+</div>
+
+<div id="setup" class="card">
+<div class="section-title">🌅 Comenzar día</div>
+<div class="row">
+<div><label>Vasos iniciales</label><input id="initialGlasses" type="number" min="0" value="20"></div>
+<div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" value="50"></div>
+</div>
+<button id="start" class="primary" style="width:100%;margin-top:12px">Comenzar jornada</button>
+</div>
+
+<div id="active" class="hidden">
+<div class="card">
+<div class="section-title">🥤 Vasos térmicos</div>
+<div class="row">
+<button id="addGlass">+1 vaso</button><button id="add5Glass">+5 vasos</button>
+</div>
+<p class="small">Agregados hoy: <strong id="addedGlasses">0</strong></p>
+</div>
+
+<div class="card">
+<div class="section-title">🍵 Tazas lavadas</div>
+<div class="row">
+<button id="wash1">+1 taza</button><button id="wash5">+5 tazas</button><button id="washUndo">−1</button>
+</div>
+<p class="small">Lavadas hoy: <strong id="washed">0</strong></p>
+</div>
+
+<div class="card">
+<div class="section-title">📦 Cápsulas agregadas al dispenser</div>
+<div class="row">
+<button id="add10Caps">+10</button><button id="add25Caps">+25</button><button id="add50Caps">+50</button>
+</div>
+<p class="small">Agregadas hoy: <strong id="addedCapsules">0</strong></p>
+</div>
+
+<div class="card">
+<div class="section-title">🌙 Cierre del día</div>
+<div class="row">
+<div><label>Vasos que quedan</label><input id="remainingGlasses" type="number" min="0" value="0"></div>
+<div><label>Cápsulas que quedan</label><input id="remainingCapsules" type="number" min="0" value="0"></div>
+</div>
+<div class="status" id="liveResult">Completá los datos de cierre.</div>
+<button id="closeDay" class="primary" style="width:100%;margin-top:12px">🔒 Cerrar día</button>
+</div>
+</div>
+
+<div id="closed" class="hidden"></div>
+</section>
+
+<section id="week" class="hidden">
+<div class="card"><div class="section-title">📊 Semana laboral</div><div id="weekSummary"></div></div>
+</section>
+
+<section id="month" class="hidden">
+<div class="card"><div class="section-title">📦 Cierre mensual</div><div id="monthSummary"></div></div>
+<div class="card"><div class="section-title">🗂️ Historial mensual</div><div id="archive"></div></div>
+</section>
+
+<div class="card">
+<div class="section-title">💾 Datos</div>
+<div class="row">
+<button id="export">Exportar respaldo</button>
+<button id="reset" class="danger">Borrar mes</button>
+</div>
+<div class="small" style="margin-top:8px">Los datos se guardan localmente en este dispositivo. Exportá un respaldo al cerrar cada mes.</div>
+</div>
+
+<script>
+const KEY="cafe_control_v1";
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const monthKey=()=>todayKey().slice(0,7);
+let state=JSON.parse(localStorage.getItem(KEY)||'{"days":{},"archives":[]}');
+function save(){localStorage.setItem(KEY,JSON.stringify(state));}
+function day(){return state.days[todayKey()]}
+function fmt(n){return Number(n||0).toLocaleString("es-AR")}
+function startDay(){
+ const d=todayKey();
+ if(state.days[d]) return render();
+ state.days[d]={started:true,closed:false,date:d,initialGlasses:+initialGlasses.value||0,addedGlasses:0,washed:0,initialCapsules:+initialCapsules.value||0,addedCapsules:0,remainingGlasses:+initialGlasses.value||0,remainingCapsules:+initialCapsules.value||0,total:0};
+ save(); render();
+}
+function calc(d){
+ const glass=Math.max(0,d.initialGlasses+d.addedGlasses-d.remainingGlasses);
+ const dispenser=Math.max(0,d.initialCapsules+d.addedCapsules-d.remainingCapsules);
+ return {glass,dispenser,container:glass+d.washed,diff:(glass+d.washed)-dispenser};
+}
+function closeDay(){
+ const d=day(); if(!d||d.closed)return;
+ d.remainingGlasses=Math.max(0,+remainingGlasses.value||0);
+ d.remainingCapsules=Math.max(0,+remainingCapsules.value||0);
+ const c=calc(d); d.total=c.dispenser; d.closed=true; d.closedAt=new Date().toISOString(); save(); render();
+}
+function add(field,n){const d=day();if(!d||d.closed)return;d[field]+=n;save();render()}
+function monthDays(){return Object.values(state.days).filter(d=>d.date.slice(0,7)===monthKey()).sort((a,b)=>a.date.localeCompare(b.date))}
+function monthTotal(){return monthDays().filter(d=>d.closed).reduce((s,d)=>s+d.total,0)}
+function weekDays(){const ds=monthDays(); return ds.filter(d=>d.closed).slice(-5)}
+function render(){
+ const d=day(), m=monthTotal(); todayTotal.textContent=d?.closed?fmt(d.total):d?fmt(calc(d).dispenser):"0"; monthTotal.textContent=fmt(m);
+ setup.classList.toggle("hidden",!!d); active.classList.toggle("hidden",!d||d.closed); closed.classList.toggle("hidden",!d||!d.closed);
+ if(d&&!d.closed){addedGlasses.textContent=d.addedGlasses;washed.textContent=d.washed;addedCapsules.textContent=d.addedCapsules;remainingGlasses.value=d.remainingGlasses;remainingCapsules.value=d.remainingCapsules;const c=calc(d);liveResult.innerHTML=`Recipientes: <b>${fmt(c.container)}</b> · Dispenser: <b>${fmt(c.dispenser)}</b> · Diferencia: <b>${fmt(c.diff)}</b>`;liveResult.className="status "+(c.diff===0?"ok":"warn")}
+ if(d?.closed){const c=calc(d);closed.innerHTML=`<div class="card"><div class="section-title">🔒 Día cerrado</div><div class="big">${fmt(d.total)} cápsulas</div><div class="small">Recipientes: ${fmt(c.container)} · Dispenser: ${fmt(c.dispenser)} · Diferencia: ${fmt(c.diff)}</div></div>`}
+ renderWeek();renderMonth();
+}
+function renderWeek(){
+ const ds=weekDays(); let total=ds.reduce((s,d)=>s+d.total,0);
+ weekSummary.innerHTML=ds.length?`<div class="big">${fmt(total)} cápsulas</div><table><tr><th>Día</th><th>Recip.</th><th>Disp.</th><th>Total</th></tr>${ds.map(d=>{const c=calc(d);return `<tr><td>${d.date.slice(8,10)}/${d.date.slice(5,7)}</td><td>${c.container}</td><td>${c.dispenser}</td><td>${d.total}</td></tr>`}).join("")}</table>`:"Todavía no hay días cerrados.";
+}
+function renderMonth(){
+ const total=monthTotal(), boxes=Math.ceil(total/50), full=Math.floor(total/50), rem=total%50;
+ monthSummary.innerHTML=`<div class="grid"><div><div class="muted">Cápsulas</div><div class="big">${fmt(total)}</div></div><div><div class="muted">Cajas equivalentes</div><div class="big">${full}${rem?" + "+rem:""}</div></div></div><p><b>Pedido recomendado: ${boxes} cajas</b></p><p class="small">${rem?`Quedan ${rem} cápsulas por completar la última caja.`:"Consumo exacto de cajas completas."}</p>`;
+ archive.innerHTML=state.archives.length?state.archives.map(a=>`<p><b>${a.month}</b>: ${a.total} cápsulas · pedido ${a.order} cajas</p>`).join(""):"Sin meses archivados.";
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");["today","week","month"].forEach(v=>document.getElementById(v).classList.toggle("hidden",v!==b.dataset.view))}));
+start.addEventListener("click",startDay);addGlass.addEventListener("click",()=>add("addedGlasses",1));add5Glass.addEventListener("click",()=>add("addedGlasses",5));wash1.addEventListener("click",()=>add("washed",1));wash5.addEventListener("click",()=>add("washed",5));washUndo.addEventListener("click",()=>add("washed",-1));add10Caps.addEventListener("click",()=>add("addedCapsules",10));add25Caps.addEventListener("click",()=>add("addedCapsules",25));add50Caps.addEventListener("click",()=>add("addedCapsules",50));remainingGlasses.addEventListener("input",render);remainingCapsules.addEventListener("input",render);closeDay.addEventListener("click",closeDay);
+export.addEventListener("click",()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`cafe-control-${monthKey()}.json`;a.click();URL.revokeObjectURL(a.href)});
+reset.addEventListener("click",()=>{if(confirm("¿Borrar todos los datos del mes? Exportá un respaldo antes.")){state={days:{},archives:state.archives};save();render()}});
+render();
+</script>
+</body></html>

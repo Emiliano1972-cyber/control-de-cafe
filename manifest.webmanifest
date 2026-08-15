@@ -1,0 +1,9 @@
+{
+  "name": "Control de Café",
+  "short_name": "Café",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f6f2ed",
+  "theme_color": "#6b4f35",
+  "icons": []
+}

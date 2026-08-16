@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.21</title>
+<title>☕ Control de Café · v1.22</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -312,7 +312,7 @@ function localDateKeyEarly(date=new Date()){
   return `${y}-${m}-${d}`;
 }
 
-// v1.21 used UTC dates. If that created today's test jornada under the UTC
+// v1.22 used UTC dates. If that created today's test jornada under the UTC
 // date while the device is still on the previous local date, move it once to
 // the correct local key so no test data is lost.
 (function migrateUtcDayToLocal(){
@@ -389,11 +389,20 @@ function calc(d){
   return {glasses,dispenser,containers,diff:containers-dispenser};
 }
 function currentClosedUsed(d){
-  // En una jornada cerrada pero todavía editable, mostrar el total
-  // actual de recipientes (vasos + tazas), no el total congelado del
-  // último cierre. Así los cambios de último momento se reflejan
-  // inmediatamente en la pantalla.
-  return d && d.closed ? calc(d).containers : Number(d?.washed||0);
+  if(!d) return 0;
+  // Durante una jornada abierta, las tazas lavadas equivalen a cápsulas
+  // usadas. El stock de vasos no modifica este contador durante la jornada.
+  if(!d.closed) return Number(d.washed||0);
+
+  // Una jornada cerrada pero editable conserva el último total confirmado.
+  // Si después se agregan/quitan tazas, ese total se ajusta por la diferencia
+  // de tazas. Agregar/quitar vasos del stock NO lo modifica.
+  let closedWashed = Number(d.closedWashed);
+  if(!Number.isFinite(closedWashed)){
+    const c=calc(d);
+    closedWashed=Math.max(0,Number(d.containerTotal||0)-Number(c.glasses||0));
+  }
+  return Math.max(0,Number(d.total||0)-closedWashed+Number(d.washed||0));
 }
 
 function updateDate(){
@@ -508,7 +517,9 @@ function renderDay(){
     : "<b>🟢 Jornada abierta.</b> Registrá los movimientos del día y, cuando termines, pasá al cierre.";
   el.dayTotal.textContent=fmt(currentClosedUsed(d));
   el.dayTotalSource.textContent=d.closed
-    ? (d.definitiveClosed ? "Total definitivo" : "Total actual · se recalcula al editar")
+    ? (d.definitiveClosed
+        ? "Total definitivo"
+        : "Total confirmado · las tazas se ajustan al editar; el stock de vasos se calcula al cierre")
     : "Parcial: solo tazas lavadas (los vasos se calculan al cierre)";
   el.dayWashed.textContent=fmt(d.washed);
   el.washed.textContent=fmt(d.washed);
@@ -578,7 +589,8 @@ function closeDay(){
   d.remainingCapsules=Math.max(0,+rc||0);
   const c=calc(d);
   d.containerTotal=c.containers;d.dispenserTotal=c.dispenser;d.difference=c.diff;
-  d.total=c.dispenser;d.closed=true;d.closedAt=new Date().toISOString();
+  d.total=c.dispenser;d.closedWashed=Number(d.washed||0);
+  d.closed=true;d.closedAt=new Date().toISOString();
   save();renderClose();renderHome();
 }
 function editDay(){

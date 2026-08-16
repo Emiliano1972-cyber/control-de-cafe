@@ -505,6 +505,7 @@ function renderDay(){
   el.dayTotal.textContent=fmt(currentClosedUsed(d));
   el.dayTotalSource.textContent=d.closed?"Total confirmado al cerrar":"Parcial: solo tazas lavadas (los vasos se calculan al cierre)";
   el.dayWashed.textContent=fmt(d.washed);
+  el.washed.textContent=fmt(d.washed);
   el.addedGlasses.textContent=fmt(d.addedGlasses);
   el.addedCapsules.textContent=fmt(d.addedCapsules);
   const c=d.closed?calc(d):null;

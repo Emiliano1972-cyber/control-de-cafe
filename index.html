@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.26</title>
+<title>☕ Control de Café · v1.27</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -45,7 +45,18 @@ button.danger{color:#8a2f2f}
 button.secondary{background:#f8f4ef}
 button.full{width:100%}
 button:disabled{opacity:.48}
-.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.row{display:flex;gap:8px;align-items:flex-start}.row>*{flex:1}
+.startFields{align-items:flex-start}.startField{min-width:0}.startFieldHint{min-height:20px}
+.mangaControls{display:block;margin-top:12px}
+.mangaManual{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.mangaManual label{margin:0;display:flex;flex-direction:column;justify-content:center}.mangaManual input{min-width:0}
+.mangaQuick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.definitiveCard{border:2px solid #9a3b32;background:#fff8f6}
+button.finalAction{background:#9a3b32;color:#fff;border-color:#9a3b32;font-weight:800}
+button.finalAction:disabled{background:#d9c8c4;border-color:#d9c8c4;color:#6f625f}
+.closeResult.ok{background:#e8f3e9!important;border-color:#cce5cf;color:#2f7f3b}
+.closeResult.warn{background:#fff1d9!important;border-color:#ead6a7;color:#765b20}
+@media(max-width:560px){.mangaManual{grid-template-columns:1fr auto}.mangaQuick{grid-template-columns:1fr 1fr}}
 label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
 input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;background:#fff}
 .status{padding:13px;border-radius:13px;background:#eee8e2;margin-top:12px;line-height:1.5}
@@ -137,13 +148,17 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
       <div id="startHint" class="muted" style="margin:7px 0 14px">
         Ingresá las cantidades que tenés al comenzar la jornada.
       </div>
-      <div class="row">
-        <div>
-  <label>Mangas iniciales</label>
-  <input id="initialMangas" type="number" min="0" step="1" inputmode="numeric" placeholder="Ej. 1">
-  <div class="small">1 manga = 25 vasos · Vasos iniciales: <strong id="initialGlassesPreview">0</strong></div>
-</div>
-        <div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" inputmode="numeric" placeholder="Ej. 50"></div>
+      <div class="row startFields">
+        <div class="startField">
+          <label>Mangas iniciales</label>
+          <input id="initialMangas" type="number" min="0" step="1" inputmode="numeric" placeholder="Ej. 1">
+          <div class="small startFieldHint">1 manga = 25 vasos · Vasos iniciales: <strong id="initialGlassesPreview">0</strong></div>
+        </div>
+        <div class="startField">
+          <label>Cápsulas iniciales</label>
+          <input id="initialCapsules" type="number" min="0" step="1" inputmode="numeric" placeholder="Ej. 50">
+          <div class="small startFieldHint">&nbsp;</div>
+        </div>
       </div>
       <button id="start" class="primary full" style="margin-top:12px">☕ Comenzar jornada</button>
       <button id="continueDay" class="secondary full hidden" style="margin-top:8px">→ Continuar jornada</button>
@@ -216,12 +231,18 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
     <div class="card">
       <div class="section-title">🥤 Reposición de vasos</div>
       <div class="small">Cada manga contiene 25 vasos. Agregá una manga cuando se agote la anterior.</div>
-      <div class="row">
+      <div class="mangaControls">
+        <div class="mangaManual">
+          <label>Mangas a agregar
+            <input id="addMangasQty" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 2">
+          </label>
+          <button id="addMangasApply">Agregar</button>
+        </div>
+        <div></div>
+        <div></div>
+      </div>
+      <div class="mangaQuick">
         <button id="addManga">+1 manga</button>
-        <label style="display:flex;align-items:center;gap:6px">Mangas
-          <input id="addMangasQty" type="number" min="0" step="1" inputmode="numeric" value="0" style="width:60px">
-        </label>
-        <button id="addMangasApply">Agregar</button>
         <button id="undoManga">−1 manga</button>
       </div>
       <p class="small">Mangas agregadas hoy: <strong id="addedMangas">0</strong> · Vasos agregados: <strong id="addedGlasses">0</strong></p>
@@ -298,12 +319,12 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
       <button id="reset" class="danger full" style="margin-top:8px">🗑️ Borrar mes</button>
     </div>
 
-    <div id="definitiveCard" class="card hidden">
-      <div class="section-title">🔐 Finalizar jornada</div>
-      <div class="small" style="margin-bottom:12px">
-        Este es el último paso. El cierre definitivo bloquea la jornada y vuelve a la pantalla inicial.
+    <div id="definitiveCard" class="card definitiveCard">
+      <div class="section-title">🔐 Cierre definitivo</div>
+      <div id="definitiveHint" class="small" style="margin-bottom:12px">
+        Este es el último paso. Primero tenés que cerrar el día. Después de confirmarlo, la jornada quedará bloqueada y volverás a Inicio.
       </div>
-      <button id="definitiveClose" class="primary full">🔒 Cierre definitivo del día</button>
+      <button id="definitiveClose" class="finalAction full" disabled>🔒 Cierre definitivo del día</button>
     </div>
   </section>
 </main>
@@ -354,7 +375,7 @@ const el={
   washed:$("washed"),addedCapsules:$("addedCapsules"),
   remainingGlasses:$("remainingGlasses"),remainingCapsules:$("remainingCapsules"),
   closeStatus:$("closeStatus"),closeResult:$("closeResult"),closedActions:$("closedActions"),
-  definitiveCard:$("definitiveCard"),weekSummary:$("weekSummary"),monthSummary:$("monthSummary"),archive:$("archive"),
+  definitiveCard:$("definitiveCard"),definitiveHint:$("definitiveHint"),weekSummary:$("weekSummary"),monthSummary:$("monthSummary"),archive:$("archive"),
   backHome:$("backHome"),backDay:$("backDay"),goClose:$("goClose"),closeDay:$("closeDay"),backHomeFromWeek:$("backHomeFromWeek"),
   backHomeFromMonth:$("backHomeFromMonth"),editFromClose:$("editFromClose"),export:$("export"),reset:$("reset"),
   definitiveClose:$("definitiveClose")
@@ -389,8 +410,19 @@ function ensureDayFlags(d){
     d.initialMangas=Math.ceil(Number(d.initialGlasses)/GLASSES_PER_MANGA);
   if(!Number.isFinite(Number(d.addedMangas)) && Number.isFinite(Number(d.addedGlasses)))
     d.addedMangas=Number(d.addedGlasses)/GLASSES_PER_MANGA;
+  // v1.26 could leave a fractional manga when older test data had individual
+  // glasses (for example 5 glasses = 0.2 manga). Preserve those legacy glasses
+  // separately so the new manga workflow remains integer-based.
+  if(!Number.isFinite(Number(d.legacyAddedGlasses))) d.legacyAddedGlasses=0;
+  const am=Number(d.addedMangas);
+  const ag=Number(d.addedGlasses);
+  if(Number.isFinite(am) && Math.abs(am-Math.round(am))>1e-9 && Number.isFinite(ag)){
+    d.legacyAddedGlasses=Math.max(Number(d.legacyAddedGlasses||0),ag);
+    d.addedMangas=0;
+  }
   if(Number.isFinite(Number(d.initialMangas))) d.initialGlasses=mangasToGlasses(d.initialMangas);
-  if(Number.isFinite(Number(d.addedMangas))) d.addedGlasses=mangasToGlasses(d.addedMangas);
+  d.addedMangas=Math.max(0,Math.floor(Number(d.addedMangas||0)));
+  d.addedGlasses=mangasToGlasses(d.addedMangas)+Number(d.legacyAddedGlasses||0);
 
   // Migración de jornadas cerradas de versiones anteriores:
   // congelamos los vasos usados según el último cierre. Nunca usamos
@@ -419,8 +451,11 @@ function weekDays(){
   const all=Object.values(state.days).filter(d=>d && d.closed).sort((a,b)=>a.date.localeCompare(b.date));
   return all.slice(-5);
 }
+function addedGlassesTotal(d){
+  return mangasToGlasses(d.addedMangas||0)+Number(d.legacyAddedGlasses||0);
+}
 function calc(d){
-  const glasses=Math.max(0,Number(d.initialGlasses||0)+Number(d.addedGlasses||0)-Number(d.remainingGlasses||0));
+  const glasses=Math.max(0,Number(d.initialGlasses||0)+addedGlassesTotal(d)-Number(d.remainingGlasses||0));
   const dispenser=Math.max(0,Number(d.initialCapsules||0)+Number(d.addedCapsules||0)-Number(d.remainingCapsules||0));
   const containers=glasses+Number(d.washed||0);
   return {glasses,dispenser,containers,diff:containers-dispenser};
@@ -531,12 +566,33 @@ function renderHome(){
   el.homeMonthTotal.textContent=fmt(monthTotal());
 }
 
+function persistStartValues(){
+  const d=day();
+  if(!d || d.definitiveClosed) return false;
+  const im=el.initialMangas.value, ic=el.initialCapsules.value;
+  if(im===""||ic===""){alert("Ingresá mangas iniciales y cápsulas iniciales.");return false;}
+  const mangas=Math.max(0,Math.floor(+im||0));
+  const capsules=Math.max(0,+ic||0);
+  const changed=mangas!==Number(d.initialMangas||0)||capsules!==Number(d.initialCapsules||0);
+  d.initialMangas=mangas;
+  d.initialGlasses=mangasToGlasses(mangas);
+  d.initialCapsules=capsules;
+  if(changed){
+    d.remainingGlasses=d.initialGlasses+addedGlassesTotal(d);
+    d.remainingCapsules=d.initialCapsules+d.addedCapsules;
+    d.closed=false;d.total=0;d.containerTotal=0;d.dispenserTotal=0;d.difference=0;
+    delete d.closedGlasses;delete d.closedWashed;
+  }
+  save();
+  return true;
+}
 function startDay(){
   const key=todayKey();
   const im=el.initialMangas.value, ic=el.initialCapsules.value;
   const existing=state.days[key];
   if(existing){
     if(existing.definitiveClosed){alert("La jornada de hoy ya está cerrada definitivamente.");return;}
+    if(!persistStartValues()) return;
     showDay();return;
   }
   if(im===""||ic===""){alert("Ingresá mangas iniciales y cápsulas iniciales antes de comenzar.");return;}
@@ -545,7 +601,7 @@ function startDay(){
   const capsules=Math.max(0,+ic||0);
   state.days[key]={
     date:key,started:true,closed:false,definitiveClosed:false,exportedAt:"",
-    initialMangas:mangas,initialGlasses:glasses,addedMangas:0,addedGlasses:0,washed:0,
+    initialMangas:mangas,initialGlasses:glasses,addedMangas:0,addedGlasses:0,legacyAddedGlasses:0,washed:0,
     initialCapsules:capsules,addedCapsules:0,
     remainingGlasses:glasses,remainingCapsules:capsules,
     total:0,containerTotal:0,dispenserTotal:0,difference:0
@@ -559,8 +615,8 @@ function changeMangaStock(n){
 
   // Una reposición modifica únicamente mangas/stock de vasos.
   // Nunca modifica tazas, cápsulas usadas ni cápsulas del dispenser.
-  d.addedMangas=Math.max(0,Number(d.addedMangas||0)+Number(n||0));
-  d.addedGlasses=mangasToGlasses(d.addedMangas);
+  d.addedMangas=Math.max(0,Math.floor(Number(d.addedMangas||0)+Number(n||0)));
+  d.addedGlasses=addedGlassesTotal(d);
   save();
   renderDay();
   if(d.closed) renderClose();
@@ -592,7 +648,7 @@ function renderDay(){
   el.dayWashed.textContent=fmt(d.washed);
   el.washed.textContent=fmt(d.washed);
   el.addedMangas.textContent=fmt(d.addedMangas||0);
-  el.addedGlasses.textContent=fmt(mangasToGlasses(d.addedMangas||0));
+  el.addedGlasses.textContent=fmt(addedGlassesTotal(d));
   el.addedCapsules.textContent=fmt(d.addedCapsules);
   const c=d.closed?calc(d):null;
   el.usedGlasses.textContent=fmt(c?c.glasses:0);
@@ -620,14 +676,14 @@ function updateCloseResult(){
     el.closeResult.innerHTML="Ingresá los dos valores de cierre para comprobar las cuentas.";
     return c;
   }
-  el.closeResult.className="status "+(c.diff===0?"ok":"warn");
+  el.closeResult.className="status closeResult "+(c.diff===0?"ok":"warn");
   el.closeResult.innerHTML=
     `<div>🥤 <b>Recipientes: ${fmt(c.containers)} cápsulas usadas</b></div>
      <div>📦 <b>Dispenser: ${fmt(c.dispenser)} cápsulas usadas</b></div>
      <div>🔎 <b>Diferencia entre controles: ${fmt(c.diff)} cápsulas</b></div>
      <div class="small" style="margin-top:8px">
        Recipientes = ${fmt(c.glasses)} vasos utilizados + ${fmt(d.washed)} tazas lavadas.
-       <br>Stock de vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(d.addedGlasses)} agregados − ${fmt(rgv)} restantes = ${fmt(c.glasses)} utilizados.
+       <br>Stock de vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(addedGlassesTotal(d))} agregados − ${fmt(rgv)} restantes = ${fmt(c.glasses)} utilizados.
        <br>Dispenser: ${fmt(d.initialCapsules)} iniciales + ${fmt(d.addedCapsules)} agregadas − ${fmt(rcv)} restantes = ${fmt(c.dispenser)} usadas.
      </div>`;
   return c;
@@ -645,7 +701,13 @@ function renderClose(){
     ? "<b>🔒 El cierre ya fue calculado.</b> Podés editar la jornada y recalcularlo si hace falta."
     : "<b>🌙 Cierre pendiente.</b> Ingresá las existencias finales y comprobá las cuentas.";
   el.closedActions.classList.toggle("hidden",!closed);
-  el.definitiveCard.classList.toggle("hidden",!closed||d.definitiveClosed);
+  el.definitiveClose.disabled=!closed||d.definitiveClosed;
+  el.definitiveClose.textContent=d.definitiveClosed?"🔒 Día cerrado definitivamente":"🔒 Cierre definitivo del día";
+  el.definitiveHint.innerHTML=d.definitiveClosed
+    ? "La jornada ya quedó definitivamente cerrada y no admite más modificaciones."
+    : closed
+      ? "Este es el último paso. La jornada quedará bloqueada y volverás a Inicio. Antes de confirmarlo, verificá que ya hayas hecho la última exportación."
+      : "Este paso se habilita después de <b>Cerrar el día</b>. Hasta entonces, la jornada sigue abierta y editable.";
   el.export.disabled=false;
   el.reset.disabled=false;
 }
@@ -846,7 +908,7 @@ el.initialMangas.addEventListener("input",()=>{
   el.initialGlassesPreview.textContent=mangasToGlasses(el.initialMangas.value);
 });
 el.start.addEventListener("click",startDay);
-el.continueDay.addEventListener("click",showDay);
+el.continueDay.addEventListener("click",()=>{ if(persistStartValues()) showDay(); });
 el.addManga.addEventListener("click",()=>changeMangaStock(1));
 el.addMangasApply.addEventListener("click",()=>{
   const n=Math.max(0,Math.floor(Number(el.addMangasQty.value||0)));

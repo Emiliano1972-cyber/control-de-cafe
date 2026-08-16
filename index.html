@@ -622,29 +622,7 @@ function restoreLatestDay(){
 restoreLatestDay();
 </script>
 
-(function installDefinitiveCloseUI(){
-  const inject=()=>{
-    const buttons=[...document.querySelectorAll("button")];
-    const closeBtn=buttons.find(b=>{
-      const t=(b.textContent||"").trim();
-      return t.includes("Cerrar el día") && !t.includes("definitivamente");
-    });
-    if(!closeBtn || document.getElementById("definitiveCloseButton")) return;
-    const d=state.days[state.currentDay];
-    if(!d || !d.closed || d.definitiveClosed) return;
-    const wrap=document.createElement("div");
-    wrap.innerHTML=`<button id="definitiveCloseButton" class="definitiveClose">🔒 Cierre definitivo del día</button>`;
-    closeBtn.parentElement.appendChild(wrap.firstElementChild);
-    document.getElementById("definitiveCloseButton").onclick=requestDefinitiveClose;
 
-    const note=document.createElement("div");
-    note.className="closedEditable";
-    note.innerHTML="<strong>Jornada cerrada, pero editable.</strong><br>Podés editar los números si aparece algún ajuste de último momento y volver a cerrar el día.";
-    closeBtn.parentElement.insertBefore(note,document.getElementById("definitiveCloseButton"));
-  };
-  inject();
-  new MutationObserver(inject).observe(document.body,{childList:true,subtree:true});
-})();
 
 
 document.addEventListener("click",(ev)=>{
@@ -660,6 +638,139 @@ document.addEventListener("click",(ev)=>{
     }
   }
 });
+
+
+<script>
+(function installV16CloseFlow(){
+  function ensureDayFlags(d){
+    if(!d) return d;
+    if(typeof d.closed!=="boolean") d.closed=false;
+    if(typeof d.definitiveClosed!=="boolean") d.definitiveClosed=false;
+    return d;
+  }
+
+  function markDayClosedEditable(day){
+    ensureDayFlags(day);
+    day.closed=true;
+    day.definitiveClosed=false;
+  }
+
+  function markDayDefinitive(day){
+    ensureDayFlags(day);
+    day.closed=true;
+    day.definitiveClosed=true;
+  }
+
+  function requestDefinitiveClose(){
+    if(typeof state==="undefined" || !state.days || state.currentDay==null) return;
+    const d=state.days[state.currentDay];
+    if(!d) return;
+    ensureDayFlags(d);
+
+    const hasExport=!!d.exportedAt;
+    const overlay=document.createElement("div");
+    overlay.className="closeDialog";
+    overlay.innerHTML=
+      '<div class="closeDialogCard" role="dialog" aria-modal="true">' +
+      '<h3>🔒 Cierre definitivo del día</h3>' +
+      '<p>Una vez confirmado, esta jornada quedará finalizada y volverás a la pantalla inicial.</p>' +
+      '<p><strong>' +
+      (hasExport
+        ? 'Ya registraste una exportación desde esta jornada.'
+        : 'Antes de continuar, asegurate de haber realizado la última exportación del informe.') +
+      '</strong></p>' +
+      '<p>¿Querés cerrar definitivamente el día?</p>' +
+      '<div class="closeDialogActions">' +
+      '<button class="cancelClose">Cancelar</button>' +
+      '<button class="confirmClose">Sí, cerrar definitivamente</button>' +
+      '</div></div>';
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelector(".cancelClose").onclick=function(){
+      overlay.remove();
+    };
+
+    overlay.querySelector(".confirmClose").onclick=function(){
+      markDayDefinitive(d);
+      if(typeof save==="function") save();
+      overlay.remove();
+      state.currentDay=null;
+      if(typeof render==="function") render();
+    };
+  }
+
+  function wireExistingCloseButton(btn){
+    if(btn.dataset.v16Wired==="1") return;
+    btn.dataset.v16Wired="1";
+    btn.addEventListener("click",function(){
+      if(typeof state==="undefined" || !state.days || state.currentDay==null) return;
+      const d=state.days[state.currentDay];
+      if(!d) return;
+      markDayClosedEditable(d);
+      if(typeof save==="function") save();
+    });
+  }
+
+  function inject(){
+    if(typeof state==="undefined" || !state.days || state.currentDay==null) return;
+    const d=state.days[state.currentDay];
+    if(!d || !d.closed || d.definitiveClosed) return;
+
+    const buttons=[...document.querySelectorAll("button")];
+    const closeBtn=buttons.find(function(b){
+      const t=(b.textContent||"").trim().toLowerCase();
+      return t.includes("cerrar el día") && !t.includes("definitivamente");
+    });
+    if(!closeBtn) return;
+
+    wireExistingCloseButton(closeBtn);
+
+    if(document.getElementById("definitiveCloseButton")) return;
+
+    const note=document.createElement("div");
+    note.className="closedEditable";
+    note.innerHTML="<strong>Jornada cerrada, pero editable.</strong><br>Podés editar los números si aparece algún ajuste de último momento y volver a cerrar el día.";
+
+    const definitive=document.createElement("button");
+    definitive.id="definitiveCloseButton";
+    definitive.className="definitiveClose";
+    definitive.type="button";
+    definitive.textContent="🔒 Cierre definitivo del día";
+    definitive.addEventListener("click",requestDefinitiveClose);
+
+    closeBtn.parentElement.appendChild(note);
+    closeBtn.parentElement.appendChild(definitive);
+  }
+
+  // Wait until the app has initialized its state/render function.
+  function boot(){
+    inject();
+    const observer=new MutationObserver(function(){ inject(); });
+    observer.observe(document.body,{childList:true,subtree:true});
+  }
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",boot,{once:true});
+  }else{
+    boot();
+  }
+
+  // Mark exports without interfering with the existing exporter.
+  document.addEventListener("click",function(ev){
+    const btn=ev.target.closest("button");
+    if(!btn) return;
+    const txt=(btn.textContent||"").toLowerCase();
+    if(!txt.includes("exportar informe")) return;
+    if(typeof state==="undefined" || !state.days || state.currentDay==null) return;
+    const d=state.days[state.currentDay];
+    if(!d) return;
+    ensureDayFlags(d);
+    d.exportedAt=new Date().toISOString();
+    if(typeof save==="function") save();
+  });
+})();
+</script>
 
 </body>
 </html>

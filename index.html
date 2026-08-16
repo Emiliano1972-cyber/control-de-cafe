@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.22</title>
+<title>☕ Control de Café · v1.23</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -312,7 +312,7 @@ function localDateKeyEarly(date=new Date()){
   return `${y}-${m}-${d}`;
 }
 
-// v1.22 used UTC dates. If that created today's test jornada under the UTC
+// v1.23 used UTC dates. If that created today's test jornada under the UTC
 // date while the device is still on the previous local date, move it once to
 // the correct local key so no test data is lost.
 (function migrateUtcDayToLocal(){
@@ -390,19 +390,21 @@ function calc(d){
 }
 function currentClosedUsed(d){
   if(!d) return 0;
-  // Durante una jornada abierta, las tazas lavadas equivalen a cápsulas
-  // usadas. El stock de vasos no modifica este contador durante la jornada.
+
+  // Jornada abierta: todavía no contamos los vasos como cápsulas usadas.
+  // Solo las tazas lavadas representan cápsulas usadas en tiempo real.
   if(!d.closed) return Number(d.washed||0);
 
-  // Una jornada cerrada pero editable conserva el último total confirmado.
-  // Si después se agregan/quitan tazas, ese total se ajusta por la diferencia
-  // de tazas. Agregar/quitar vasos del stock NO lo modifica.
-  let closedWashed = Number(d.closedWashed);
-  if(!Number.isFinite(closedWashed)){
-    const c=calc(d);
-    closedWashed=Math.max(0,Number(d.containerTotal||0)-Number(c.glasses||0));
-  }
-  return Math.max(0,Number(d.total||0)-closedWashed+Number(d.washed||0));
+  // Jornada cerrada pero editable:
+  // partimos del total confirmado en el último cierre y ajustamos ÚNICAMENTE
+  // por cambios posteriores en tazas lavadas. Los cambios de stock de vasos
+  // (addedGlasses) jamás participan de este cálculo.
+  const closedWashed=Number.isFinite(Number(d.closedWashed))
+    ? Number(d.closedWashed)
+    : Number(d.washed||0);
+  const confirmedTotal=Number(d.total||0);
+  const washedDelta=Number(d.washed||0)-closedWashed;
+  return Math.max(0,confirmedTotal+washedDelta);
 }
 
 function updateDate(){
@@ -496,6 +498,18 @@ function startDay(){
     total:0,containerTotal:0,dispenserTotal:0,difference:0
   };
   save();showDay();
+}
+
+function changeGlassStock(n){
+  const d=day();
+  if(!d || d.definitiveClosed) return;
+
+  // IMPORTANTE: esto solo modifica el stock de vasos.
+  // No toca washed, total, addedCapsules ni ningún contador de cápsulas.
+  d.addedGlasses=Math.max(0,Number(d.addedGlasses||0)+Number(n||0));
+  save();
+  renderDay();
+  if(d.closed) renderClose();
 }
 
 function add(field,n){
@@ -771,9 +785,9 @@ el.backHomeFromWeek.addEventListener("click",showHome);
 el.backHomeFromMonth.addEventListener("click",showHome);
 el.start.addEventListener("click",startDay);
 el.continueDay.addEventListener("click",showDay);
-el.addGlass.addEventListener("click",()=>add("addedGlasses",1));
-el.add5Glass.addEventListener("click",()=>add("addedGlasses",5));
-el.undoGlass.addEventListener("click",()=>add("addedGlasses",-1));
+el.addGlass.addEventListener("click",()=>changeGlassStock(1));
+el.add5Glass.addEventListener("click",()=>changeGlassStock(5));
+el.undoGlass.addEventListener("click",()=>changeGlassStock(-1));
 el.wash1.addEventListener("click",()=>add("washed",1));
 el.wash5.addEventListener("click",()=>add("washed",5));
 el.washUndo.addEventListener("click",()=>add("washed",-1));

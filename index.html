@@ -274,6 +274,52 @@ function editDay(){
   updateLive();
 }
 
+
+function ensureDayFlags(d){
+  if(!d) return d;
+  if(typeof d.closed!=="boolean") d.closed=false;
+  if(typeof d.definitiveClosed!=="boolean") d.definitiveClosed=false;
+  return d;
+}
+function markDayClosedEditable(day){
+  ensureDayFlags(day);
+  day.closed=true;
+  day.definitiveClosed=false;
+}
+function markDayDefinitive(day){
+  ensureDayFlags(day);
+  day.closed=true;
+  day.definitiveClosed=true;
+}
+function requestDefinitiveClose(){
+  const d=state.days[state.currentDay];
+  if(!d) return;
+  ensureDayFlags(d);
+  const hasExport=!!d.exportedAt;
+  const overlay=document.createElement("div");
+  overlay.className="closeDialog";
+  overlay.innerHTML=`
+    <div class="closeDialogCard" role="dialog" aria-modal="true">
+      <h3>🔒 Cierre definitivo del día</h3>
+      <p>Una vez confirmado, esta jornada quedará finalizada y volverás a la pantalla inicial.</p>
+      <p><strong>${hasExport?"Ya registraste una exportación desde esta jornada.":"Antes de continuar, asegurate de haber realizado la última exportación del informe."}</strong></p>
+      <p>¿Querés cerrar definitivamente el día?</p>
+      <div class="closeDialogActions">
+        <button class="cancelClose">Cancelar</button>
+        <button class="confirmClose">Sí, cerrar definitivamente</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector(".cancelClose").onclick=()=>overlay.remove();
+  overlay.querySelector(".confirmClose").onclick=()=>{
+    markDayDefinitive(d);
+    save();
+    overlay.remove();
+    state.currentDay=null;
+    render();
+  };
+}
+
 function renderDay(){
   const d=day();
   if(!d){showStartPage();return;}
@@ -447,6 +493,41 @@ h1{font-size:34px;margin:0 0 8px;line-height:1.15}h2{font-size:25px;margin:30px 
  .monthTotals{grid-template-columns:repeat(2,1fr);gap:12px}.monthTotals .title{grid-column:1/-1}.backupGrid{grid-template-columns:1fr;gap:12px}
 }
 @media(min-width:761px){th:nth-child(1){width:13%}th:nth-child(2){width:12%}th:nth-child(3),th:nth-child(4){width:12%}th:nth-child(5){width:14%}th:nth-child(6),th:nth-child(7){width:14%}th:nth-child(8){width:9%}}
+
+.definitiveClose{
+  margin-top:12px;
+  width:100%;
+  padding:15px 18px;
+  border:1px solid #9b5d5d;
+  border-radius:12px;
+  background:#fff;
+  color:#8a3f3f;
+  font-size:17px;
+  font-weight:700;
+  cursor:pointer;
+}
+.definitiveClose:hover{background:#fff7f7}
+.closeDialog{
+  position:fixed;inset:0;z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(0,0,0,.42);
+}
+.closeDialogCard{
+  width:min(520px,100%);background:#fff;border-radius:20px;
+  padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.closeDialogCard h3{margin:0 0 12px;font-size:24px}
+.closeDialogCard p{color:#5e564f;line-height:1.5}
+.closeDialogActions{display:flex;gap:10px;margin-top:20px}
+.closeDialogActions button{
+  flex:1;padding:13px 15px;border-radius:11px;font-size:16px;font-weight:700;cursor:pointer
+}
+.cancelClose{background:#fff;border:1px solid #cfc5ba;color:#4c443d}
+.confirmClose{background:#6b4f35;border:1px solid #6b4f35;color:#fff}
+.closedEditable{
+  padding:12px 14px;border-radius:12px;background:#fff8e8;
+  border:1px solid #ead6a7;color:#765b20;margin-top:12px;line-height:1.4
+}
 </style></head><body><main>
 <h1>☕ Control de Café</h1><p class="subtitle">Informe mensual · ${escHtml(monthKey())}</p>
 <div class="summary">
@@ -478,6 +559,12 @@ h1{font-size:34px;margin:0 0 8px;line-height:1.15}h2{font-size:25px;margin:30px 
 }
 
 el.export.addEventListener("click",()=>{
+  if(state.currentDay && state.days[state.currentDay]){
+    ensureDayFlags(state.days[state.currentDay]);
+    state.days[state.currentDay].exportedAt=new Date().toISOString();
+    save();
+  }
+
   const month=monthKey();
   const json=JSON.stringify(state,null,2);
   const report=reportHtml();
@@ -534,5 +621,45 @@ function restoreLatestDay(){
 
 restoreLatestDay();
 </script>
+
+(function installDefinitiveCloseUI(){
+  const inject=()=>{
+    const buttons=[...document.querySelectorAll("button")];
+    const closeBtn=buttons.find(b=>{
+      const t=(b.textContent||"").trim();
+      return t.includes("Cerrar el día") && !t.includes("definitivamente");
+    });
+    if(!closeBtn || document.getElementById("definitiveCloseButton")) return;
+    const d=state.days[state.currentDay];
+    if(!d || !d.closed || d.definitiveClosed) return;
+    const wrap=document.createElement("div");
+    wrap.innerHTML=`<button id="definitiveCloseButton" class="definitiveClose">🔒 Cierre definitivo del día</button>`;
+    closeBtn.parentElement.appendChild(wrap.firstElementChild);
+    document.getElementById("definitiveCloseButton").onclick=requestDefinitiveClose;
+
+    const note=document.createElement("div");
+    note.className="closedEditable";
+    note.innerHTML="<strong>Jornada cerrada, pero editable.</strong><br>Podés editar los números si aparece algún ajuste de último momento y volver a cerrar el día.";
+    closeBtn.parentElement.insertBefore(note,document.getElementById("definitiveCloseButton"));
+  };
+  inject();
+  new MutationObserver(inject).observe(document.body,{childList:true,subtree:true});
+})();
+
+
+document.addEventListener("click",(ev)=>{
+  const btn=ev.target.closest("button");
+  if(!btn) return;
+  const txt=(btn.textContent||"").trim();
+  if(txt.includes("Cerrar el día") && !txt.includes("definitivamente") && !btn.dataset.v15Handled){
+    const d=state.days[state.currentDay];
+    if(d){
+      ensureDayFlags(d);
+      markDayClosedEditable(d);
+      save();
+    }
+  }
+});
+
 </body>
 </html>

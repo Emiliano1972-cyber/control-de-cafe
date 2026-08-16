@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.18</title>
+<title>☕ Control de Café · v1.21</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -312,7 +312,7 @@ function localDateKeyEarly(date=new Date()){
   return `${y}-${m}-${d}`;
 }
 
-// v1.18 used UTC dates. If that created today's test jornada under the UTC
+// v1.21 used UTC dates. If that created today's test jornada under the UTC
 // date while the device is still on the previous local date, move it once to
 // the correct local key so no test data is lost.
 (function migrateUtcDayToLocal(){
@@ -389,7 +389,11 @@ function calc(d){
   return {glasses,dispenser,containers,diff:containers-dispenser};
 }
 function currentClosedUsed(d){
-  return d && d.closed ? Number(d.total||0) : Number(d?.washed||0);
+  // En una jornada cerrada pero todavía editable, mostrar el total
+  // actual de recipientes (vasos + tazas), no el total congelado del
+  // último cierre. Así los cambios de último momento se reflejan
+  // inmediatamente en la pantalla.
+  return d && d.closed ? calc(d).containers : Number(d?.washed||0);
 }
 
 function updateDate(){
@@ -503,7 +507,9 @@ function renderDay(){
     ? "<b>🔒 Día cerrado, pero editable.</b> Podés modificar los movimientos y volver a cerrar."
     : "<b>🟢 Jornada abierta.</b> Registrá los movimientos del día y, cuando termines, pasá al cierre.";
   el.dayTotal.textContent=fmt(currentClosedUsed(d));
-  el.dayTotalSource.textContent=d.closed?"Total confirmado al cerrar":"Parcial: solo tazas lavadas (los vasos se calculan al cierre)";
+  el.dayTotalSource.textContent=d.closed
+    ? (d.definitiveClosed ? "Total definitivo" : "Total actual · se recalcula al editar")
+    : "Parcial: solo tazas lavadas (los vasos se calculan al cierre)";
   el.dayWashed.textContent=fmt(d.washed);
   el.washed.textContent=fmt(d.washed);
   el.addedGlasses.textContent=fmt(d.addedGlasses);

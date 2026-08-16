@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.23</title>
+<title>☕ Control de Café · v1.24</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -312,7 +312,7 @@ function localDateKeyEarly(date=new Date()){
   return `${y}-${m}-${d}`;
 }
 
-// v1.23 used UTC dates. If that created today's test jornada under the UTC
+// v1.24 used UTC dates. If that created today's test jornada under the UTC
 // date while the device is still on the previous local date, move it once to
 // the correct local key so no test data is lost.
 (function migrateUtcDayToLocal(){
@@ -391,20 +391,29 @@ function calc(d){
 function currentClosedUsed(d){
   if(!d) return 0;
 
-  // Jornada abierta: todavía no contamos los vasos como cápsulas usadas.
-  // Solo las tazas lavadas representan cápsulas usadas en tiempo real.
+  // Jornada abierta: las tazas lavadas son el único dato de cápsulas
+  // que puede verse en tiempo real. Los vasos se calculan recién al cierre.
   if(!d.closed) return Number(d.washed||0);
 
   // Jornada cerrada pero editable:
-  // partimos del total confirmado en el último cierre y ajustamos ÚNICAMENTE
-  // por cambios posteriores en tazas lavadas. Los cambios de stock de vasos
-  // (addedGlasses) jamás participan de este cálculo.
-  const closedWashed=Number.isFinite(Number(d.closedWashed))
-    ? Number(d.closedWashed)
-    : Number(d.washed||0);
-  const confirmedTotal=Number(d.total||0);
-  const washedDelta=Number(d.washed||0)-closedWashed;
-  return Math.max(0,confirmedTotal+washedDelta);
+  // los vasos usados quedan congelados en el último cierre.
+  // Las tazas lavadas sí pueden cambiar, y por eso se suman en tiempo real.
+  let closedGlasses=Number(d.closedGlasses);
+
+  // Compatibilidad con jornadas creadas antes de este campo.
+  if(!Number.isFinite(closedGlasses)){
+    const closedWashed=Number(d.closedWashed);
+    if(Number.isFinite(closedWashed) && Number.isFinite(Number(d.containerTotal))){
+      closedGlasses=Math.max(0,Number(d.containerTotal)-closedWashed);
+    }else{
+      closedGlasses=Math.max(
+        0,
+        Number(d.initialGlasses||0)+Number(d.addedGlasses||0)-Number(d.remainingGlasses||0)
+      );
+    }
+  }
+
+  return Math.max(0,closedGlasses+Number(d.washed||0));
 }
 
 function updateDate(){
@@ -533,7 +542,7 @@ function renderDay(){
   el.dayTotalSource.textContent=d.closed
     ? (d.definitiveClosed
         ? "Total definitivo"
-        : "Total confirmado · las tazas se ajustan al editar; el stock de vasos se calcula al cierre")
+        : "Total actual · los vasos quedan fijados al último cierre y las tazas se ajustan al editar")
     : "Parcial: solo tazas lavadas (los vasos se calculan al cierre)";
   el.dayWashed.textContent=fmt(d.washed);
   el.washed.textContent=fmt(d.washed);
@@ -603,7 +612,9 @@ function closeDay(){
   d.remainingCapsules=Math.max(0,+rc||0);
   const c=calc(d);
   d.containerTotal=c.containers;d.dispenserTotal=c.dispenser;d.difference=c.diff;
-  d.total=c.dispenser;d.closedWashed=Number(d.washed||0);
+  d.total=c.dispenser;
+  d.closedGlasses=Number(c.glasses||0);
+  d.closedWashed=Number(d.washed||0);
   d.closed=true;d.closedAt=new Date().toISOString();
   save();renderClose();renderHome();
 }
@@ -611,6 +622,8 @@ function editDay(){
   const d=day();
   if(!d||d.definitiveClosed)return;
   d.closed=false;d.total=0;d.containerTotal=0;d.dispenserTotal=0;d.difference=0;
+  delete d.closedGlasses;
+  delete d.closedWashed;
   save();showDay();
 }
 function requestDefinitiveClose(){

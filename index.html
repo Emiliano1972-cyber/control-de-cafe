@@ -98,7 +98,7 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
 <body>
 <header>
   <h1>☕ Control de Café</h1>
-  <div class="sub">Conteo diario · control cruzado · consumo semanal y mensual</div>
+  <div class="sub">Conteo diario · control cruzado · consumo semanal y mensual · fecha según el dispositivo</div>
   <div id="dateBar" class="datebar">📅 Jornada: <strong></strong></div>
 </header>
 
@@ -211,7 +211,7 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
 
     <div class="card">
       <div class="section-title">🥤 Vasos térmicos (stock)</div>
-      <div class="row"><button id="addGlass">+1 vaso</button><button id="add5Glass">+5 vasos</button></div>
+      <div class="row"><button id="addGlass">+1 vaso</button><button id="add5Glass">+5 vasos</button><button id="undoGlass">−1</button></div>
       <p class="small">Agregados hoy al stock: <strong id="addedGlasses">0</strong></p>
       <p class="small">Vasos utilizados: <strong id="usedGlasses">0</strong> <span id="usedGlassesHint"></span></p>
     </div>
@@ -270,6 +270,14 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
     </div>
 
     <div class="card">
+      <div class="section-title">🌙 Confirmar cierre</div>
+      <div class="small" style="margin-bottom:12px">
+        Este botón calcula y guarda el cierre. La jornada seguirá siendo editable hasta el cierre definitivo.
+      </div>
+      <button id="closeDay" class="primary full">🌙 Cerrar el día</button>
+    </div>
+
+    <div class="card">
       <div class="section-title">📄 Informe y datos</div>
       <div class="small" style="margin-bottom:12px">
         Exportá el informe cuando quieras. La exportación genera el informe legible y conserva también el respaldo técnico JSON.
@@ -299,6 +307,24 @@ const KEY="cafe_control_v2";
 let state=JSON.parse(localStorage.getItem(KEY)||'{"days":{},"archives":[]}');
 if(!state.days) state.days={};
 if(!Array.isArray(state.archives)) state.archives=[];
+function localDateKeyEarly(date=new Date()){
+  const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+
+// v1.18 used UTC dates. If that created today's test jornada under the UTC
+// date while the device is still on the previous local date, move it once to
+// the correct local key so no test data is lost.
+(function migrateUtcDayToLocal(){
+  const localKey=localDateKeyEarly();
+  const utcKey=new Date().toISOString().slice(0,10);
+  if(localKey!==utcKey && !state.days[localKey] && state.days[utcKey]){
+    state.days[localKey]={...state.days[utcKey],date:localKey};
+    delete state.days[utcKey];
+    saveStateEarly();
+  }
+})();
+function saveStateEarly(){localStorage.setItem(KEY,JSON.stringify(state));}
 
 const $=id=>document.getElementById(id);
 const el={
@@ -309,17 +335,26 @@ const el={
   startCard:$("startCard"),startHint:$("startHint"),initialGlasses:$("initialGlasses"),initialCapsules:$("initialCapsules"),
   start:$("start"),continueDay:$("continueDay"),homeClosedNotice:$("homeClosedNotice"),
   dayStatus:$("dayStatus"),dayTotal:$("dayTotal"),dayTotalSource:$("dayTotalSource"),dayWashed:$("dayWashed"),
+  addGlass:$("addGlass"),add5Glass:$("add5Glass"),undoGlass:$("undoGlass"),
+  wash1:$("wash1"),wash5:$("wash5"),washUndo:$("washUndo"),
+  add10Caps:$("add10Caps"),add25Caps:$("add25Caps"),add50Caps:$("add50Caps"),
   addedGlasses:$("addedGlasses"),usedGlasses:$("usedGlasses"),usedGlassesHint:$("usedGlassesHint"),
   washed:$("washed"),addedCapsules:$("addedCapsules"),
   remainingGlasses:$("remainingGlasses"),remainingCapsules:$("remainingCapsules"),
   closeStatus:$("closeStatus"),closeResult:$("closeResult"),closedActions:$("closedActions"),
   definitiveCard:$("definitiveCard"),weekSummary:$("weekSummary"),monthSummary:$("monthSummary"),archive:$("archive"),
-  backHome:$("backHome"),backDay:$("backDay"),goClose:$("goClose"),backHomeFromWeek:$("backHomeFromWeek"),
+  backHome:$("backHome"),backDay:$("backDay"),goClose:$("goClose"),closeDay:$("closeDay"),backHomeFromWeek:$("backHomeFromWeek"),
   backHomeFromMonth:$("backHomeFromMonth"),editFromClose:$("editFromClose"),export:$("export"),reset:$("reset"),
   definitiveClose:$("definitiveClose")
 };
 
-const todayKey=()=>new Date().toISOString().slice(0,10);
+function localDateKey(date=new Date()){
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,"0");
+  const d=String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+const todayKey=()=>localDateKey();
 const monthKey=()=>todayKey().slice(0,7);
 const fmt=n=>Number(n||0).toLocaleString("es-AR");
 const fmtLongDate=iso=>{
@@ -712,12 +747,14 @@ document.querySelectorAll(".topnav button").forEach(b=>b.addEventListener("click
 el.backHome.addEventListener("click",showHome);
 el.backDay.addEventListener("click",showDay);
 el.goClose.addEventListener("click",showClose);
+el.closeDay.addEventListener("click",closeDay);
 el.backHomeFromWeek.addEventListener("click",showHome);
 el.backHomeFromMonth.addEventListener("click",showHome);
 el.start.addEventListener("click",startDay);
 el.continueDay.addEventListener("click",showDay);
 el.addGlass.addEventListener("click",()=>add("addedGlasses",1));
 el.add5Glass.addEventListener("click",()=>add("addedGlasses",5));
+el.undoGlass.addEventListener("click",()=>add("addedGlasses",-1));
 el.wash1.addEventListener("click",()=>add("washed",1));
 el.wash5.addEventListener("click",()=>add("washed",5));
 el.washUndo.addEventListener("click",()=>add("washed",-1));
@@ -736,7 +773,7 @@ el.dayNav.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
   if(s==="close")showClose();
 }));
 
-// Primera apertura: siempre muestra Inicio. Si existe una jornada de hoy,
+// Primera apertura: muestra Inicio. Si existe una jornada del día local,
 // la pantalla ofrece "Continuar jornada" sin perder ningún dato.
 renderAll();
 showHome();

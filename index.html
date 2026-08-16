@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.25</title>
+<title>☕ Control de Café · v1.26</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -138,7 +138,11 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
         Ingresá las cantidades que tenés al comenzar la jornada.
       </div>
       <div class="row">
-        <div><label>Vasos iniciales</label><input id="initialGlasses" type="number" min="0" inputmode="numeric" placeholder="Ej. 20"></div>
+        <div>
+  <label>Mangas iniciales</label>
+  <input id="initialMangas" type="number" min="0" step="1" inputmode="numeric" placeholder="Ej. 1">
+  <div class="small">1 manga = 25 vasos · Vasos iniciales: <strong id="initialGlassesPreview">0</strong></div>
+</div>
         <div><label>Cápsulas iniciales</label><input id="initialCapsules" type="number" min="0" inputmode="numeric" placeholder="Ej. 50"></div>
       </div>
       <button id="start" class="primary full" style="margin-top:12px">☕ Comenzar jornada</button>
@@ -210,9 +214,17 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
     </div>
 
     <div class="card">
-      <div class="section-title">🥤 Vasos térmicos (stock)</div>
-      <div class="row"><button id="addGlass">+1 vaso</button><button id="add5Glass">+5 vasos</button><button id="undoGlass">−1</button></div>
-      <p class="small">Agregados hoy al stock: <strong id="addedGlasses">0</strong></p>
+      <div class="section-title">🥤 Reposición de vasos</div>
+      <div class="small">Cada manga contiene 25 vasos. Agregá una manga cuando se agote la anterior.</div>
+      <div class="row">
+        <button id="addManga">+1 manga</button>
+        <label style="display:flex;align-items:center;gap:6px">Mangas
+          <input id="addMangasQty" type="number" min="0" step="1" inputmode="numeric" value="0" style="width:60px">
+        </label>
+        <button id="addMangasApply">Agregar</button>
+        <button id="undoManga">−1 manga</button>
+      </div>
+      <p class="small">Mangas agregadas hoy: <strong id="addedMangas">0</strong> · Vasos agregados: <strong id="addedGlasses">0</strong></p>
       <p class="small">Vasos utilizados: <strong id="usedGlasses">0</strong> <span id="usedGlassesHint"></span></p>
     </div>
 
@@ -312,7 +324,7 @@ function localDateKeyEarly(date=new Date()){
   return `${y}-${m}-${d}`;
 }
 
-// v1.25 used UTC dates. If that created today's test jornada under the UTC
+// v1.26 used UTC dates. If that created today's test jornada under the UTC
 // date while the device is still on the previous local date, move it once to
 // the correct local key so no test data is lost.
 (function migrateUtcDayToLocal(){
@@ -332,13 +344,13 @@ const el={
   homeScreen:$("homeScreen"),weekScreen:$("weekScreen"),monthScreen:$("monthScreen"),
   dayScreen:$("dayScreen"),closeScreen:$("closeScreen"),dayNav:$("dayNav"),
   homeTodayTotal:$("homeTodayTotal"),homeTodaySource:$("homeTodaySource"),homeMonthTotal:$("homeMonthTotal"),
-  startCard:$("startCard"),startHint:$("startHint"),initialGlasses:$("initialGlasses"),initialCapsules:$("initialCapsules"),
+  startCard:$("startCard"),startHint:$("startHint"),initialMangas:$("initialMangas"),initialGlassesPreview:$("initialGlassesPreview"),initialCapsules:$("initialCapsules"),
   start:$("start"),continueDay:$("continueDay"),homeClosedNotice:$("homeClosedNotice"),
   dayStatus:$("dayStatus"),dayTotal:$("dayTotal"),dayTotalSource:$("dayTotalSource"),dayWashed:$("dayWashed"),
-  addGlass:$("addGlass"),add5Glass:$("add5Glass"),undoGlass:$("undoGlass"),
+  addManga:$("addManga"),addMangasQty:$("addMangasQty"),addMangasApply:$("addMangasApply"),undoManga:$("undoManga"),
   wash1:$("wash1"),wash5:$("wash5"),washUndo:$("washUndo"),
   add10Caps:$("add10Caps"),add25Caps:$("add25Caps"),add50Caps:$("add50Caps"),
-  addedGlasses:$("addedGlasses"),usedGlasses:$("usedGlasses"),usedGlassesHint:$("usedGlassesHint"),
+  addedMangas:$("addedMangas"),addedGlasses:$("addedGlasses"),usedGlasses:$("usedGlasses"),usedGlassesHint:$("usedGlassesHint"),
   washed:$("washed"),addedCapsules:$("addedCapsules"),
   remainingGlasses:$("remainingGlasses"),remainingCapsules:$("remainingCapsules"),
   closeStatus:$("closeStatus"),closeResult:$("closeResult"),closedActions:$("closedActions"),
@@ -347,6 +359,9 @@ const el={
   backHomeFromMonth:$("backHomeFromMonth"),editFromClose:$("editFromClose"),export:$("export"),reset:$("reset"),
   definitiveClose:$("definitiveClose")
 };
+
+const GLASSES_PER_MANGA=25;
+const mangasToGlasses=n=>Math.max(0,Number(n||0))*GLASSES_PER_MANGA;
 
 function localDateKey(date=new Date()){
   const y=date.getFullYear();
@@ -370,6 +385,12 @@ function ensureDayFlags(d){
   if(typeof d.closed!=="boolean")d.closed=false;
   if(typeof d.definitiveClosed!=="boolean")d.definitiveClosed=false;
   if(typeof d.exportedAt!=="string")d.exportedAt="";
+  if(!Number.isFinite(Number(d.initialMangas)) && Number.isFinite(Number(d.initialGlasses)))
+    d.initialMangas=Math.ceil(Number(d.initialGlasses)/GLASSES_PER_MANGA);
+  if(!Number.isFinite(Number(d.addedMangas)) && Number.isFinite(Number(d.addedGlasses)))
+    d.addedMangas=Number(d.addedGlasses)/GLASSES_PER_MANGA;
+  if(Number.isFinite(Number(d.initialMangas))) d.initialGlasses=mangasToGlasses(d.initialMangas);
+  if(Number.isFinite(Number(d.addedMangas))) d.addedGlasses=mangasToGlasses(d.addedMangas);
 
   // Migración de jornadas cerradas de versiones anteriores:
   // congelamos los vasos usados según el último cierre. Nunca usamos
@@ -487,7 +508,8 @@ function renderHome(){
     ensureDayFlags(d);
     el.homeTodayTotal.textContent=fmt(currentClosedUsed(d));
     el.homeTodaySource.textContent=d.closed?"Total confirmado al cerrar":"Parcial: solo tazas lavadas";
-    el.initialGlasses.value=d.initialGlasses;
+    el.initialMangas.value=Number(d.initialMangas ?? Math.round(Number(d.initialGlasses||0)/GLASSES_PER_MANGA));
+    el.initialGlassesPreview.textContent=mangasToGlasses(el.initialMangas.value);
     el.initialCapsules.value=d.initialCapsules;
     el.start.classList.add("hidden");
     el.continueDay.classList.remove("hidden");
@@ -498,7 +520,8 @@ function renderHome(){
   }else{
     el.homeTodayTotal.textContent="0";
     el.homeTodaySource.textContent="";
-    el.initialGlasses.value="";
+    el.initialMangas.value="";
+    el.initialGlassesPreview.textContent="0";
     el.initialCapsules.value="";
     el.start.classList.remove("hidden");
     el.continueDay.classList.add("hidden");
@@ -510,30 +533,34 @@ function renderHome(){
 
 function startDay(){
   const key=todayKey();
-  const ig=el.initialGlasses.value, ic=el.initialCapsules.value;
+  const im=el.initialMangas.value, ic=el.initialCapsules.value;
   const existing=state.days[key];
   if(existing){
     if(existing.definitiveClosed){alert("La jornada de hoy ya está cerrada definitivamente.");return;}
     showDay();return;
   }
-  if(ig===""||ic===""){alert("Ingresá vasos iniciales y cápsulas iniciales antes de comenzar.");return;}
+  if(im===""||ic===""){alert("Ingresá mangas iniciales y cápsulas iniciales antes de comenzar.");return;}
+  const mangas=Math.max(0,Math.floor(+im||0));
+  const glasses=mangasToGlasses(mangas);
+  const capsules=Math.max(0,+ic||0);
   state.days[key]={
     date:key,started:true,closed:false,definitiveClosed:false,exportedAt:"",
-    initialGlasses:Math.max(0,+ig||0),addedGlasses:0,washed:0,
-    initialCapsules:Math.max(0,+ic||0),addedCapsules:0,
-    remainingGlasses:Math.max(0,+ig||0),remainingCapsules:Math.max(0,+ic||0),
+    initialMangas:mangas,initialGlasses:glasses,addedMangas:0,addedGlasses:0,washed:0,
+    initialCapsules:capsules,addedCapsules:0,
+    remainingGlasses:glasses,remainingCapsules:capsules,
     total:0,containerTotal:0,dispenserTotal:0,difference:0
   };
   save();showDay();
 }
 
-function changeGlassStock(n){
+function changeMangaStock(n){
   const d=day();
   if(!d || d.definitiveClosed) return;
 
-  // IMPORTANTE: esto solo modifica el stock de vasos.
-  // No toca washed, total, addedCapsules ni ningún contador de cápsulas.
-  d.addedGlasses=Math.max(0,Number(d.addedGlasses||0)+Number(n||0));
+  // Una reposición modifica únicamente mangas/stock de vasos.
+  // Nunca modifica tazas, cápsulas usadas ni cápsulas del dispenser.
+  d.addedMangas=Math.max(0,Number(d.addedMangas||0)+Number(n||0));
+  d.addedGlasses=mangasToGlasses(d.addedMangas);
   save();
   renderDay();
   if(d.closed) renderClose();
@@ -564,7 +591,8 @@ function renderDay(){
     : "Parcial: solo tazas lavadas (los vasos se calculan al cierre)";
   el.dayWashed.textContent=fmt(d.washed);
   el.washed.textContent=fmt(d.washed);
-  el.addedGlasses.textContent=fmt(d.addedGlasses);
+  el.addedMangas.textContent=fmt(d.addedMangas||0);
+  el.addedGlasses.textContent=fmt(mangasToGlasses(d.addedMangas||0));
   el.addedCapsules.textContent=fmt(d.addedCapsules);
   const c=d.closed?calc(d):null;
   el.usedGlasses.textContent=fmt(c?c.glasses:0);
@@ -814,11 +842,18 @@ el.goClose.addEventListener("click",showClose);
 el.closeDay.addEventListener("click",closeDay);
 el.backHomeFromWeek.addEventListener("click",showHome);
 el.backHomeFromMonth.addEventListener("click",showHome);
+el.initialMangas.addEventListener("input",()=>{
+  el.initialGlassesPreview.textContent=mangasToGlasses(el.initialMangas.value);
+});
 el.start.addEventListener("click",startDay);
 el.continueDay.addEventListener("click",showDay);
-el.addGlass.addEventListener("click",()=>changeGlassStock(1));
-el.add5Glass.addEventListener("click",()=>changeGlassStock(5));
-el.undoGlass.addEventListener("click",()=>changeGlassStock(-1));
+el.addManga.addEventListener("click",()=>changeMangaStock(1));
+el.addMangasApply.addEventListener("click",()=>{
+  const n=Math.max(0,Math.floor(Number(el.addMangasQty.value||0)));
+  if(n) changeMangaStock(n);
+  el.addMangasQty.value=0;
+});
+el.undoManga.addEventListener("click",()=>changeMangaStock(-1));
 el.wash1.addEventListener("click",()=>add("washed",1));
 el.wash5.addEventListener("click",()=>add("washed",5));
 el.washUndo.addEventListener("click",()=>add("washed",-1));

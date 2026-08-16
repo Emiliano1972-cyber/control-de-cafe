@@ -400,7 +400,7 @@ function reportHtml(){
       washed:Number(d.washed||0),
       capsules:Number(d.total||0),
       dispenser:Number(c.dispenser||0),
-      containers:Number(c.container||0),
+      containers:Number((c.container ?? c.containers ?? ((c.glasses||0)+(d.washed||0))) || 0),
       diff:Number(c.diff||0)
     };
   });
@@ -521,7 +521,18 @@ function render(){
   const d=day();
   if(d) showDayPage(); else showStartPage();
 }
-render();
+
+function restoreLatestDay(){
+  const keys=Object.keys(state.days||{}).sort();
+  if(!keys.length) return;
+  const latest=keys[keys.length-1];
+  const d=state.days[latest];
+  if(!d) return;
+  state.currentDay=latest;
+  render();
+}
+
+restoreLatestDay();
 </script>
 </body>
 </html>

@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.28</title>
+<title>☕ Control de Café · v1.29</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -51,11 +51,30 @@ button:disabled{opacity:.48}
 .mangaManual{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
 .mangaManual label{margin:0;display:flex;flex-direction:column;justify-content:center}.mangaManual input{min-width:0}
 .mangaQuick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.definitiveCard{border:2px solid #9a3b32;background:#fff8f6}
-button.finalAction{background:#9a3b32;color:#fff;border-color:#9a3b32;font-weight:800}
-button.finalAction:disabled{background:#d9c8c4;border-color:#d9c8c4;color:#6f625f}
-.closeResult.ok{background:#e8f3e9!important;border-color:#cce5cf;color:#2f7f3b}
-.closeResult.warn{background:#fff1d9!important;border-color:#ead6a7;color:#765b20}
+.definitiveCard{border:2px solid #9a3b32;background:#fff8f6;box-shadow:0 4px 16px rgba(154,59,50,.10)}
+  .definitiveCard.ready{border-color:#b3261e;background:#fff7f6;box-shadow:0 5px 18px rgba(179,38,30,.16)}
+button.finalAction{
+  background:#c62828!important;color:#fff!important;
+  border:2px solid #8e1b1b!important;font-weight:800;
+  box-shadow:0 4px 0 #751313,0 5px 14px rgba(142,27,27,.22);
+}
+button.finalAction:not(:disabled){
+  background:#c62828!important;color:#fff!important;border-color:#8e1b1b!important;
+}
+button.finalAction:disabled{
+  background:#e3d7d4!important;border:2px solid #cbb9b5!important;
+  color:#766966!important;box-shadow:none!important;
+}
+.closeResult.ok{
+  background:#dff3e2!important;border:2px solid #3d9b4b!important;
+  color:#236b2d!important;box-shadow:0 4px 16px rgba(61,155,75,.14);
+}
+.closeResult.balanced{
+  background:#dff3e2!important;border:2px solid #3d9b4b!important;
+  color:#236b2d!important;box-shadow:0 4px 16px rgba(61,155,75,.14);
+}
+.closeResult.balanced b{color:#1f6d2c!important}
+.closeResult.warn{background:#fff1d9!important;border:2px solid #d6aa58!important;color:#765b20!important}
 @media(max-width:560px){.mangaManual{grid-template-columns:1fr auto}.mangaQuick{grid-template-columns:1fr 1fr}}
 label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
 input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;background:#fff}
@@ -686,7 +705,7 @@ function updateCloseResult(){
     el.closeResult.innerHTML="Ingresá los dos valores de cierre para comprobar las cuentas.";
     return c;
   }
-  el.closeResult.className="status closeResult "+(c.diff===0?"ok":"warn");
+  el.closeResult.className="status closeResult "+(c.diff===0?"balanced":"warn");
   el.closeResult.innerHTML=
     `<div>🥤 <b>Recipientes: ${fmt(c.containers)} cápsulas usadas</b></div>
      <div>📦 <b>Dispenser: ${fmt(c.dispenser)} cápsulas usadas</b></div>
@@ -712,6 +731,7 @@ function renderClose(){
     : "<b>🌙 Cierre pendiente.</b> Ingresá las existencias finales y comprobá las cuentas.";
   el.closedActions.classList.toggle("hidden",!closed);
   el.definitiveClose.disabled=!closed||d.definitiveClosed;
+  el.definitiveCard.classList.toggle("ready",closed&&!d.definitiveClosed);
   el.definitiveClose.textContent=d.definitiveClosed?"🔒 Día cerrado definitivamente":"🔒 Cierre definitivo del día";
   el.definitiveHint.innerHTML=d.definitiveClosed
     ? "La jornada ya quedó definitivamente cerrada y no admite más modificaciones."

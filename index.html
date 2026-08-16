@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.27</title>
+<title>☕ Control de Café · v1.28</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -660,6 +660,16 @@ function renderDay(){
   });
   el.goClose.disabled=disabled;
 }
+function persistCloseInputs(){
+  const d=day();
+  if(!d || d.definitiveClosed) return;
+  const rg=el.remainingGlasses.value;
+  const rc=el.remainingCapsules.value;
+  if(rg!=="") d.remainingGlasses=Math.max(0,+rg||0);
+  if(rc!=="") d.remainingCapsules=Math.max(0,+rc||0);
+  save();
+}
+
 function updateCloseResult(){
   const d=day();
   if(!d)return;
@@ -680,7 +690,7 @@ function updateCloseResult(){
   el.closeResult.innerHTML=
     `<div>🥤 <b>Recipientes: ${fmt(c.containers)} cápsulas usadas</b></div>
      <div>📦 <b>Dispenser: ${fmt(c.dispenser)} cápsulas usadas</b></div>
-     <div>🔎 <b>Diferencia entre controles: ${fmt(c.diff)} cápsulas</b></div>
+     <div>🔎 <b>Diferencia entre controles: ${fmt(c.diff)} cápsulas</b>${c.diff===0?' · ✓ CONTROLES OK':''}</div>
      <div class="small" style="margin-top:8px">
        Recipientes = ${fmt(c.glasses)} vasos utilizados + ${fmt(d.washed)} tazas lavadas.
        <br>Stock de vasos: ${fmt(d.initialGlasses)} iniciales + ${fmt(addedGlassesTotal(d))} agregados − ${fmt(rgv)} restantes = ${fmt(c.glasses)} utilizados.
@@ -922,8 +932,14 @@ el.washUndo.addEventListener("click",()=>add("washed",-1));
 el.add10Caps.addEventListener("click",()=>add("addedCapsules",10));
 el.add25Caps.addEventListener("click",()=>add("addedCapsules",25));
 el.add50Caps.addEventListener("click",()=>add("addedCapsules",50));
-el.remainingGlasses.addEventListener("input",updateCloseResult);
-el.remainingCapsules.addEventListener("input",updateCloseResult);
+el.remainingGlasses.addEventListener("input",()=>{
+  persistCloseInputs();
+  updateCloseResult();
+});
+el.remainingCapsules.addEventListener("input",()=>{
+  persistCloseInputs();
+  updateCloseResult();
+});
 el.editFromClose.addEventListener("click",editDay);
 el.definitiveClose.addEventListener("click",requestDefinitiveClose);
 

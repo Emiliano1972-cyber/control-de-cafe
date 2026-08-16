@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.24</title>
+<title>☕ Control de Café · v1.25</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -312,7 +312,7 @@ function localDateKeyEarly(date=new Date()){
   return `${y}-${m}-${d}`;
 }
 
-// v1.24 used UTC dates. If that created today's test jornada under the UTC
+// v1.25 used UTC dates. If that created today's test jornada under the UTC
 // date while the device is still on the previous local date, move it once to
 // the correct local key so no test data is lost.
 (function migrateUtcDayToLocal(){
@@ -370,6 +370,22 @@ function ensureDayFlags(d){
   if(typeof d.closed!=="boolean")d.closed=false;
   if(typeof d.definitiveClosed!=="boolean")d.definitiveClosed=false;
   if(typeof d.exportedAt!=="string")d.exportedAt="";
+
+  // Migración de jornadas cerradas de versiones anteriores:
+  // congelamos los vasos usados según el último cierre. Nunca usamos
+  // addedGlasses actual para reconstruir este valor, porque ese campo
+  // representa stock y puede cambiar después del cierre.
+  if(d.closed && !Number.isFinite(Number(d.closedGlasses))){
+    const closedWashed=Number(d.closedWashed);
+    const snapshot=Number(d.containerTotal);
+    const confirmed=Number(d.total);
+
+    if(Number.isFinite(closedWashed) && Number.isFinite(snapshot)){
+      d.closedGlasses=Math.max(0,snapshot-closedWashed);
+    }else if(Number.isFinite(closedWashed) && Number.isFinite(confirmed)){
+      d.closedGlasses=Math.max(0,confirmed-closedWashed);
+    }
+  }
   return d;
 }
 function monthDays(){
@@ -391,25 +407,27 @@ function calc(d){
 function currentClosedUsed(d){
   if(!d) return 0;
 
-  // Jornada abierta: las tazas lavadas son el único dato de cápsulas
-  // que puede verse en tiempo real. Los vasos se calculan recién al cierre.
+  // Antes del cierre, solo las tazas lavadas representan cápsulas usadas
+  // en tiempo real. El stock de vasos jamás altera este contador.
   if(!d.closed) return Number(d.washed||0);
 
-  // Jornada cerrada pero editable:
-  // los vasos usados quedan congelados en el último cierre.
-  // Las tazas lavadas sí pueden cambiar, y por eso se suman en tiempo real.
+  // Después del cierre, los vasos utilizados quedan congelados en el
+  // snapshot del cierre. Solo cambia la parte correspondiente a tazas.
   let closedGlasses=Number(d.closedGlasses);
 
-  // Compatibilidad con jornadas creadas antes de este campo.
+  // Compatibilidad final para datos antiguos: reconstruir desde el snapshot
+  // del cierre, nunca desde addedGlasses actual.
   if(!Number.isFinite(closedGlasses)){
     const closedWashed=Number(d.closedWashed);
-    if(Number.isFinite(closedWashed) && Number.isFinite(Number(d.containerTotal))){
-      closedGlasses=Math.max(0,Number(d.containerTotal)-closedWashed);
+    const snapshot=Number(d.containerTotal);
+    const confirmed=Number(d.total);
+
+    if(Number.isFinite(closedWashed) && Number.isFinite(snapshot)){
+      closedGlasses=Math.max(0,snapshot-closedWashed);
+    }else if(Number.isFinite(closedWashed) && Number.isFinite(confirmed)){
+      closedGlasses=Math.max(0,confirmed-closedWashed);
     }else{
-      closedGlasses=Math.max(
-        0,
-        Number(d.initialGlasses||0)+Number(d.addedGlasses||0)-Number(d.remainingGlasses||0)
-      );
+      closedGlasses=0;
     }
   }
 

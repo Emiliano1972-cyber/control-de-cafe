@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Café">
-<title>☕ Control de Café · v1.31</title>
+<title>☕ Control de Café · v1.32</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -119,6 +119,7 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
 .closeDialogActions{display:flex;gap:10px;margin-top:20px}
 .closeDialogActions button{flex:1;font-weight:700}
 .monthTable{width:100%;border-collapse:collapse;font-size:13px}
+.month-detail{margin-top:6px;line-height:1.35}
 .monthTable th,.monthTable td{padding:8px 4px;border-bottom:1px solid #eee;text-align:right}
 .monthTable th:first-child,.monthTable td:first-child{text-align:left}
 .reportNote{font-size:13px;color:var(--muted);line-height:1.5}
@@ -165,6 +166,7 @@ input{width:100%;padding:12px;border:1px solid #cfc5bb;border-radius:12px;backgr
         <div class="muted">Mes</div>
         <div id="homeMonthTotal" class="metric">0</div>
         <div class="muted">cápsulas usadas</div>
+        <div id="homeMonthDifference" class="small month-detail"></div>
       </div>
     </div>
 
@@ -497,6 +499,9 @@ function monthDays(){
 function monthTotal(){
   return monthDays().filter(d=>d.closed).reduce((s,d)=>s+Number(d.total||0),0);
 }
+function monthDifferenceCapsules(){
+  return monthDays().filter(d=>d.closed).reduce((s,d)=>s+Math.abs(Number(d.difference ?? calc(d).diff ?? 0)),0);
+}
 function weekDays(){
   const all=Object.values(state.days).filter(d=>d && d.closed).sort((a,b)=>a.date.localeCompare(b.date));
   return all.slice(-5);
@@ -613,7 +618,11 @@ function renderHome(){
     el.startHint.textContent="Ingresá las cantidades que tenés al comenzar la jornada.";
     el.homeClosedNotice.classList.add("hidden");
   }
+  const monthDiff=monthDifferenceCapsules();
   el.homeMonthTotal.textContent=fmt(monthTotal());
+  el.homeMonthDifference.textContent=monthDiff
+    ? `Incluye ${fmt(monthDiff)} ${monthDiff===1?"cápsula":"cápsulas"} involucrada${monthDiff===1?"":"s"} en diferencias de control.`
+    : "Sin diferencias de control.";
 }
 
 function persistStartValues(){
